@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>マイ掲示板</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f0f0f0; }
+        .container { background: white; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; }
+        h1 { color: #333; }
+        input, textarea { width: 100%; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
+        #post-list { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+        .post { background: #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ミニ掲示板</h1>
+    <input type="text" id="username" placeholder="名前">
+    <textarea id="message" placeholder="メッセージを書こう"></textarea>
+    <button onclick="addPost()">投稿する</button>
+    <div id="post-list"></div>
+</div>
+
+<script>
+    // 1. 画面を開いた時に、保存されている投稿を読み込む
+    window.onload = function() {
+        const savedPosts = JSON.parse(localStorage.getItem('myPosts')) || [];
+        // 何番目の投稿か(index)を一緒に渡すように変更
+        savedPosts.forEach((post, index) => displayPost(post.name, post.msg, index));
+    };
+
+    function addPost() {
+        const name = document.getElementById('username').value;
+        const msg = document.getElementById('message').value;
+
+        if (name === "" || msg === "") {
+            alert("名前とメッセージを入れてね！");
+            return;
+        }
+
+        displayPost(name, msg); // 画面に出す
+        savePost(name, msg);    // 保存する
+
+        document.getElementById('username').value = "";
+        document.getElementById('message').value = "";
+    }
+
+    // 画面に表示する機能（削除ボタン付きに改造！）
+    function displayPost(name, msg, index) {
+        const postList = document.getElementById('post-list');
+        const newPost = document.createElement('div');
+        newPost.className = 'post';
+        
+        // 投稿内容と削除ボタンをセットにする
+        newPost.innerHTML = `
+            <strong>${name}</strong>
+            <p>${msg}</p>
+            <button onclick="deletePost(${index})" style="background:#dc3545; padding:5px 10px; font-size:12px;">削除</button>
+        `;
+        postList.prepend(newPost);
+    }
+
+    // 削除を実行する機能
+    function deletePost(index) {
+        if(confirm("本当に消してもいい？")) {
+            const savedPosts = JSON.parse(localStorage.getItem('myPosts')) || [];
+            // 指定した番号のデータを1つ消す
+            savedPosts.splice(index, 1);
+            // 保存し直して画面を更新
+            localStorage.setItem('myPosts', JSON.stringify(savedPosts));
+            location.reload(); 
+        }
+    }
+
+    function savePost(name, msg) {
+        const savedPosts = JSON.parse(localStorage.getItem('myPosts')) || [];
+        savedPosts.push({ name: name, msg: msg });
+        localStorage.setItem('myPosts', JSON.stringify(savedPosts));
+    }
+</script>
+
+</body>
+</html>
