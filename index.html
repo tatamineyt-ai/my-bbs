@@ -3,89 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>進化版・みんなの掲示板</title>
+    <title>ログイン機能付き掲示板</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Noto Sans JP', sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background-color: #f0f2f5; 
-            color: #1c1e21;
-        }
-        .container { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 12px; 
-            max-width: 600px; 
-            margin: auto; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-        }
-        h1 { color: #1877f2; text-align: center; margin-bottom: 20px; }
-        input, textarea { 
-            width: 100%; 
-            margin-bottom: 12px; 
-            padding: 12px; 
-            box-sizing: border-box; 
-            border: 1px solid #dddfe2; 
-            border-radius: 8px; 
-            font-size: 16px;
-        }
-        textarea { height: 100px; resize: none; }
-        button.send-btn { 
-            background: #1877f2; 
-            color: white; 
-            border: none; 
-            padding: 12px; 
-            cursor: pointer; 
-            border-radius: 8px; 
-            width: 100%; 
-            font-weight: bold; 
-            font-size: 16px;
-            transition: 0.2s;
-        }
-        button.send-btn:hover { background: #166fe5; }
-        
-        #post-list { margin-top: 30px; }
-        .post { 
-            background: #fff; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-            border-radius: 8px; 
-            border: 1px solid #e4e6eb;
-            position: relative;
-        }
-        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .post-name { font-weight: bold; color: #1c1e21; }
-        .post-time { font-size: 12px; color: #65676b; }
-        .post-text { font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
-        
-        .delete-btn {
-            background: #f0f2f5;
-            border: none;
-            color: #65676b;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: 0.2s;
-        }
-        .delete-btn:hover { background: #e4e6eb; color: #fa3e3e; }
+        /* デザインはそのまま、ログインボタンを追加 */
+        body { font-family: 'Noto Sans JP', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
+        .container { background: white; padding: 25px; border-radius: 12px; max-width: 600px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { color: #1877f2; text-align: center; }
+        #auth-section { text-align: center; margin-bottom: 20px; padding: 15px; border-bottom: 1px solid #eee; }
+        .hidden { display: none; }
+        input, textarea { width: 100%; margin-bottom: 12px; padding: 12px; box-sizing: border-box; border: 1px solid #dddfe2; border-radius: 8px; }
+        button { cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s; border: none; }
+        .login-btn { background: #4285f4; color: white; padding: 10px 20px; }
+        .send-btn { background: #1877f2; color: white; padding: 12px; width: 100%; }
+        .logout-btn { background: #eee; color: #65676b; padding: 5px 10px; font-size: 12px; margin-left: 10px; }
+        .post { background: #fff; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #e4e6eb; position: relative; }
+        .post-header { display: flex; justify-content: space-between; align-items: center; }
+        .delete-btn { color: #65676b; background: none; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>みんなの掲示板</h1>
-    <input type="text" id="username" placeholder="名前">
-    <textarea id="message" placeholder="いま何してる？"></textarea>
-    <button class="send-btn" onclick="addPost()">世界に投稿する</button>
+
+    <div id="auth-section">
+        <div id="login-ui">
+            <p>投稿するにはログインしてね</p>
+            <button class="login-btn" onclick="login()">Googleでログイン</button>
+        </div>
+        <div id="user-ui" class="hidden">
+            <span id="display-name"></span> さん
+            <button class="logout-btn" onclick="logout()">ログアウト</button>
+        </div>
+    </div>
+
+    <div id="post-area" class="hidden">
+        <textarea id="message" placeholder="いま何してる？"></textarea>
+        <button class="send-btn" onclick="addPost()">世界に投稿する</button>
+    </div>
+
     <div id="post-list"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDxO3q-y_HAkt5t2LCjeJAVqK3pmjhujtc",
@@ -93,71 +57,77 @@
         projectId: "my-bbs-app-77242",
         storageBucket: "my-bbs-app-77242.appspot.com",
         messagingSenderId: "1057990079628",
-        appId: "1:1057990079628:web:e2329a59ea98a14bf7a9",
-        measurementId: "G-BDKNSLPSLE"
+        appId: "1:1057990079628:web:e2329a59ea98a14bf7a9"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-    // 投稿送信
-    window.addPost = async function() {
-        const name = document.getElementById('username').value;
+    let currentUser = null;
+
+    // ログイン・ログアウト監視
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            document.getElementById('login-ui').classList.add('hidden');
+            document.getElementById('user-ui').classList.remove('hidden');
+            document.getElementById('post-area').classList.remove('hidden');
+            document.getElementById('display-name').innerText = user.displayName;
+        } else {
+            currentUser = null;
+            document.getElementById('login-ui').classList.remove('hidden');
+            document.getElementById('user-ui').classList.add('hidden');
+            document.getElementById('post-area').classList.add('hidden');
+        }
+    });
+
+    window.login = () => signInWithPopup(auth, provider);
+    window.logout = () => signOut(auth);
+
+    window.addPost = async () => {
         const msg = document.getElementById('message').value;
+        if (!msg) return;
+        await addDoc(collection(db, "posts"), {
+            name: currentUser.displayName,
+            text: msg,
+            uid: currentUser.uid, // 投稿者のIDを保存
+            timestamp: serverTimestamp()
+        });
+        document.getElementById('message').value = "";
+    };
 
-        if (!name || !msg) {
-            alert("名前とメッセージを入力してね！");
-            return;
+    window.deletePost = async (postId, postUid) => {
+        if (currentUser && currentUser.uid === postUid) {
+            if(confirm("削除しますか？")) await deleteDoc(doc(db, "posts", postId));
+        } else {
+            alert("自分の投稿しか消せません！");
         }
+    };
 
-        try {
-            await addDoc(collection(db, "posts"), {
-                name: name,
-                text: msg,
-                timestamp: serverTimestamp() // サーバー時間を使用
-            });
-            document.getElementById('message').value = "";
-        } catch (e) {
-            console.error("エラー: ", e);
-        }
-    }
-
-    // 削除処理
-    window.deletePost = async function(postId) {
-        if(confirm("この投稿を削除してもよろしいですか？")) {
-            try {
-                await deleteDoc(doc(db, "posts", postId));
-            } catch (e) {
-                alert("削除に失敗しました");
-            }
-        }
-    }
-
-    // リアルタイム表示
     const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
     onSnapshot(q, (snapshot) => {
         const postList = document.getElementById('post-list');
         postList.innerHTML = "";
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const time = data.timestamp ? data.timestamp.toDate().toLocaleString('ja-JP', {hour: '2-digit', minute:'2-digit'}) : '...';
+            const time = data.timestamp ? data.timestamp.toDate().toLocaleString('ja-JP') : "...";
+            const isMyPost = currentUser && currentUser.uid === data.uid;
             
             const postDiv = document.createElement('div');
             postDiv.className = 'post';
             postDiv.innerHTML = `
                 <div class="post-header">
-                    <div>
-                        <span class="post-name">${data.name}</span>
-                        <span class="post-time">${time}</span>
-                    </div>
-                    <button class="delete-btn" onclick="deletePost('${doc.id}')">削除</button>
+                    <strong>${data.name}</strong>
+                    <span>${time}</span>
+                    ${isMyPost ? `<button class="delete-btn" onclick="deletePost('${doc.id}', '${data.uid}')">削除</button>` : ""}
                 </div>
-                <div class="post-text">${data.text}</div>
+                <div style="margin-top:10px">${data.text}</div>
             `;
             postList.appendChild(postDiv);
         });
     });
 </script>
-
 </body>
 </html>
