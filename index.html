@@ -1,14 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン機能付き掲示板</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
+        .container { background: white; padding: 25px; border-radius: 12px; max-width: 600px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { color: #1877f2; text-align: center; }
+        #auth-section { text-align: center; margin-bottom: 20px; padding: 15px; border-bottom: 1px solid #eee; }
+        .hidden { display: none; }
+        textarea { width: 100%; height: 100px; margin-bottom: 12px; padding: 12px; box-sizing: border-box; border: 1px solid #dddfe2; border-radius: 8px; resize: none; }
+        button { cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s; border: none; }
+        .login-btn { background: #4285f4; color: white; padding: 12px 24px; font-size: 16px; }
+        .send-btn { background: #1877f2; color: white; padding: 12px; width: 100%; font-size: 16px; }
+        .logout-btn { background: #eee; color: #65676b; padding: 5px 10px; font-size: 12px; margin-left: 10px; }
+        .post { background: #fff; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #e4e6eb; }
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .delete-btn { color: #65676b; background: none; font-size: 12px; cursor: pointer; }
+        .delete-btn:hover { color: #fa3e3e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>みんなの掲示板</h1>
+
+    <div id="auth-section">
+        <div id="login-ui">
+            <p>投稿するにはログインが必要です</p>
+            <button class="login-btn" onclick="handleLogin()">Googleでログイン</button>
+        </div>
+        <div id="user-ui" class="hidden">
+            <span id="display-name"></span> さん
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+    </div>
+
+    <div id="post-area" class="hidden">
+        <textarea id="message" placeholder="いま何してる？"></textarea>
+        <button class="send-btn" onclick="handleAddPost()">世界に投稿する</button>
+    </div>
+
+    <div id="post-list"></div>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // あなたの最新の画像から取得した設定
     const firebaseConfig = {
         apiKey: "AIzaSyDxO3q-y_HAkt5t2LCjeJAVqK3pmjhujtc",
         authDomain: "my-bbs-app-77242.firebaseapp.com",
         projectId: "my-bbs-app-77242",
-        storageBucket: "my-bbs-app-77242.firebasestorage.app", // ここが画像と一致するように修正
+        storageBucket: "my-bbs-app-77242.firebasestorage.app",
         messagingSenderId: "1057990079628",
         appId: "1:1057990079628:web:e2329a59ea98a14bf7a9",
         measurementId: "G-BDKNSLPSLE"
@@ -19,49 +66,59 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // --- 以下、ログイン・投稿・削除の処理は前のコードと同じ ---
     let currentUser = null;
 
     onAuthStateChanged(auth, (user) => {
+        const loginUI = document.getElementById('login-ui');
+        const userUI = document.getElementById('user-ui');
+        const postArea = document.getElementById('post-area');
+        
         if (user) {
             currentUser = user;
-            document.getElementById('login-ui').classList.add('hidden');
-            document.getElementById('user-ui').classList.remove('hidden');
-            document.getElementById('post-area').classList.remove('hidden');
+            loginUI.classList.add('hidden');
+            userUI.classList.remove('hidden');
+            postArea.classList.remove('hidden');
             document.getElementById('display-name').innerText = user.displayName;
         } else {
             currentUser = null;
-            document.getElementById('login-ui').classList.remove('hidden');
-            document.getElementById('user-ui').classList.add('hidden');
-            document.getElementById('post-area').classList.add('hidden');
+            loginUI.classList.remove('hidden');
+            userUI.classList.add('hidden');
+            postArea.classList.add('hidden');
         }
     });
 
-    window.login = () => {
-        signInWithPopup(auth, provider).catch(err => {
-            alert("エラー: " + err.message);
-            console.error(err);
-        });
+    window.handleLogin = async () => {
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            console.error("Login Error:", error);
+            alert("ログインに失敗しました。Firebaseの『承認済みドメイン』に tatamineyt-ai.github.io が追加されているか確認してください。");
+        }
     };
-    window.logout = () => signOut(auth);
 
-    window.addPost = async () => {
+    window.handleLogout = () => signOut(auth);
+
+    window.handleAddPost = async () => {
         const msg = document.getElementById('message').value;
         if (!msg) return;
-        await addDoc(collection(db, "posts"), {
-            name: currentUser.displayName,
-            text: msg,
-            uid: currentUser.uid,
-            timestamp: serverTimestamp()
-        });
-        document.getElementById('message').value = "";
+        try {
+            await addDoc(collection(db, "posts"), {
+                name: currentUser.displayName,
+                text: msg,
+                uid: currentUser.uid,
+                timestamp: serverTimestamp()
+            });
+            document.getElementById('message').value = "";
+        } catch (e) {
+            console.error("Post Error:", e);
+        }
     };
 
-    window.deletePost = async (postId, postUid) => {
+    window.handleDeletePost = async (postId, postUid) => {
         if (currentUser && currentUser.uid === postUid) {
-            if(confirm("削除しますか？")) await deleteDoc(doc(db, "posts", postId));
-        } else {
-            alert("自分の投稿しか消せません！");
+            if(confirm("この投稿を削除しますか？")) {
+                await deleteDoc(doc(db, "posts", postId));
+            }
         }
     };
 
@@ -80,11 +137,13 @@
                 <div class="post-header">
                     <strong>${data.name}</strong>
                     <span style="font-size:12px; color:gray">${time}</span>
-                    ${isMyPost ? `<button class="delete-btn" onclick="deletePost('${doc.id}', '${data.uid}')">削除</button>` : ""}
+                    ${isMyPost ? `<button class="delete-btn" onclick="handleDeletePost('${doc.id}', '${data.uid}')">削除</button>` : ""}
                 </div>
-                <div style="margin-top:10px">${data.text}</div>
+                <div style="margin-top:10px; white-space: pre-wrap;">${data.text}</div>
             `;
             postList.appendChild(postDiv);
         });
     });
 </script>
+</body>
+</html>
