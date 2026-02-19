@@ -2,18 +2,75 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>世界とつながる掲示板</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進化版・みんなの掲示板</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #e9ecef; }
-        .container { background: white; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
-        input, textarea { width: 100%; margin-bottom: 10px; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; width: 100%; font-weight: bold; }
-        button:hover { background: #218838; }
-        #post-list { margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
-        .post { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 4px; border-left: 5px solid #28a745; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .post strong { color: #555; }
-        .post p { margin: 5px 0 0; color: #333; }
+        body { 
+            font-family: 'Noto Sans JP', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f0f2f5; 
+            color: #1c1e21;
+        }
+        .container { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            max-width: 600px; 
+            margin: auto; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+        }
+        h1 { color: #1877f2; text-align: center; margin-bottom: 20px; }
+        input, textarea { 
+            width: 100%; 
+            margin-bottom: 12px; 
+            padding: 12px; 
+            box-sizing: border-box; 
+            border: 1px solid #dddfe2; 
+            border-radius: 8px; 
+            font-size: 16px;
+        }
+        textarea { height: 100px; resize: none; }
+        button.send-btn { 
+            background: #1877f2; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            width: 100%; 
+            font-weight: bold; 
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        button.send-btn:hover { background: #166fe5; }
+        
+        #post-list { margin-top: 30px; }
+        .post { 
+            background: #fff; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #e4e6eb;
+            position: relative;
+        }
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .post-name { font-weight: bold; color: #1c1e21; }
+        .post-time { font-size: 12px; color: #65676b; }
+        .post-text { font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
+        
+        .delete-btn {
+            background: #f0f2f5;
+            border: none;
+            color: #65676b;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        .delete-btn:hover { background: #e4e6eb; color: #fa3e3e; }
     </style>
 </head>
 <body>
@@ -21,16 +78,15 @@
 <div class="container">
     <h1>みんなの掲示板</h1>
     <input type="text" id="username" placeholder="名前">
-    <textarea id="message" placeholder="メッセージを書こう"></textarea>
-    <button onclick="addPost()">世界に投稿する</button>
+    <textarea id="message" placeholder="いま何してる？"></textarea>
+    <button class="send-btn" onclick="addPost()">世界に投稿する</button>
     <div id="post-list"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // あなたの Firebase 設定
     const firebaseConfig = {
         apiKey: "AIzaSyDxO3q-y_HAkt5t2LCjeJAVqK3pmjhujtc",
         authDomain: "my-bbs-app-77242.firebaseapp.com",
@@ -41,17 +97,16 @@
         measurementId: "G-BDKNSLPSLE"
     };
 
-    // Firebase 初期化
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 投稿を送信する関数
+    // 投稿送信
     window.addPost = async function() {
         const name = document.getElementById('username').value;
         const msg = document.getElementById('message').value;
 
-        if (name === "" || msg === "") {
-            alert("名前とメッセージを入れてね！");
+        if (!name || !msg) {
+            alert("名前とメッセージを入力してね！");
             return;
         }
 
@@ -59,26 +114,47 @@
             await addDoc(collection(db, "posts"), {
                 name: name,
                 text: msg,
-                timestamp: new Date()
+                timestamp: serverTimestamp() // サーバー時間を使用
             });
-            document.getElementById('username').value = "";
             document.getElementById('message').value = "";
         } catch (e) {
-            console.error("エラー！: ", e);
+            console.error("エラー: ", e);
         }
     }
 
-    // データをリアルタイムで受け取って表示する
+    // 削除処理
+    window.deletePost = async function(postId) {
+        if(confirm("この投稿を削除してもよろしいですか？")) {
+            try {
+                await deleteDoc(doc(db, "posts", postId));
+            } catch (e) {
+                alert("削除に失敗しました");
+            }
+        }
+    }
+
+    // リアルタイム表示
     const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
-    onSnapshot(q, (querySnapshot) => {
+    onSnapshot(q, (snapshot) => {
         const postList = document.getElementById('post-list');
-        postList.innerHTML = ""; // 一旦クリア
-        querySnapshot.forEach((doc) => {
+        postList.innerHTML = "";
+        snapshot.forEach((doc) => {
             const data = doc.data();
-            const newPost = document.createElement('div');
-            newPost.className = 'post';
-            newPost.innerHTML = `<strong>${data.name}</strong><p>${data.text}</p>`;
-            postList.appendChild(newPost);
+            const time = data.timestamp ? data.timestamp.toDate().toLocaleString('ja-JP', {hour: '2-digit', minute:'2-digit'}) : '...';
+            
+            const postDiv = document.createElement('div');
+            postDiv.className = 'post';
+            postDiv.innerHTML = `
+                <div class="post-header">
+                    <div>
+                        <span class="post-name">${data.name}</span>
+                        <span class="post-time">${time}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deletePost('${doc.id}')">削除</button>
+                </div>
+                <div class="post-text">${data.text}</div>
+            `;
+            postList.appendChild(postDiv);
         });
     });
 </script>
