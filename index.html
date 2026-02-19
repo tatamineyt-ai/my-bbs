@@ -4,23 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ログイン機能付き掲示板</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Noto Sans JP', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
-        .container { background: white; padding: 25px; border-radius: 12px; max-width: 600px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        h1 { color: #1877f2; text-align: center; }
-        #auth-section { text-align: center; margin-bottom: 20px; padding: 15px; border-bottom: 1px solid #eee; }
-        .hidden { display: none; }
-        textarea { width: 100%; height: 100px; margin-bottom: 12px; padding: 12px; box-sizing: border-box; border: 1px solid #dddfe2; border-radius: 8px; resize: none; }
-        button { cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s; border: none; }
-        .login-btn { background: #4285f4; color: white; padding: 12px 24px; font-size: 16px; }
-        .send-btn { background: #1877f2; color: white; padding: 12px; width: 100%; font-size: 16px; }
-        .logout-btn { background: #eee; color: #65676b; padding: 5px 10px; font-size: 12px; margin-left: 10px; }
-        .post { background: #fff; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #e4e6eb; }
-        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .delete-btn { color: #65676b; background: none; font-size: 12px; cursor: pointer; }
-        .delete-btn:hover { color: #fa3e3e; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+    body { 
+        /* ここで読み込んだフォントを指定 */
+        font-family: 'Zen Maru Gothic', sans-serif; 
+        background-color: #fffaf0; /* 背景を少しクリーム色に */
+    }
+    
+    .send-btn {
+        background: #ff7f50; /* ボタンの色をオレンジ系に */
+        /* ... 他のスタイル ... */
+    }
+</style>
 </head>
 <body>
 
@@ -40,7 +37,7 @@
 
     <div id="post-area" class="hidden">
         <textarea id="message" placeholder="いま何してる？"></textarea>
-        <button class="send-btn" onclick="handleAddPost()">投稿する</button>
+       <button class="send-btn" onclick="handleAddPost()">投稿する</button>
     </div>
 
     <div id="post-list"></div>
