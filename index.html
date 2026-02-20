@@ -3,43 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>北上尾歯科 掲示板</title>
+    <title>市会員 問題解決掲示板</title>
     <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Kiwi Maru', serif; background-color: #fffaf0; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e0d8c0; }
-        h1 { color: #5d4037; text-align: left; border-bottom: 2px solid #5d4037; padding-bottom: 10px; font-size: 1.5rem; }
-        #auth-section { text-align: right; font-size: 0.8rem; margin-bottom: 20px; }
-        .hidden { display: none !important; } /* 確実に隠すために!importantを追加 */
+        body { font-family: 'Kiwi Maru', serif; background-color: #f0f4f8; margin: 0; padding: 20px; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: left; border-bottom: 3px solid #3498db; padding-bottom: 10px; font-size: 1.6rem; }
         
-        textarea { width: 100%; height: 80px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; font-size: 1rem; resize: none; margin-bottom: 10px; box-sizing: border-box; }
-        .send-btn { background: #8d6e63; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; }
+        /* ステータスバッジ */
+        .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-right: 10px; }
+        .status-open { background: #e74c3c; color: white; } /* 未解決は赤 */
+        .status-closed { background: #2ecc71; color: white; } /* 解決は緑 */
         
-        .timeline-title { font-weight: bold; color: #8d6e63; margin-top: 30px; border-left: 5px solid #8d6e63; padding-left: 10px; }
-        .post { border-bottom: 1px solid #eee; padding: 15px 0; }
-        .reply-post { margin-left: 40px; border-left: 2px solid #f0f0f0; padding-left: 15px; }
+        /* 解決済みの投稿を少し薄くする */
+        .post.is-resolved { opacity: 0.7; background-color: #f9f9f9; }
         
-        .post-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; align-items: center; }
-        .post-content { white-space: pre-wrap; margin: 8px 0; font-size: 1rem; color: #333; }
+        .post { border-bottom: 1px solid #eee; padding: 15px; position: relative; transition: 0.3s; }
+        .reply-post { margin-left: 40px; border-left: 3px solid #ddd; background: #fff; }
         
-        .action-btns { display: flex; gap: 20px; align-items: center; margin-top: 5px; }
-        .action-btn { background: none; border: none; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; }
-        .reply-btn { color: #065fd4; font-weight: bold; }
-        .like-btn { color: #666; }
-        .like-btn.active { color: #ff4757; font-weight: bold; }
-        .delete-btn { color: #999; margin-left: auto; }
+        #auth-section { text-align: right; margin-bottom: 20px; }
+        .hidden { display: none !important; }
+        textarea { width: 100%; height: 100px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-size: 1rem; resize: none; box-sizing: border-box; }
+        .send-btn { background: #3498db; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
         
-        #reply-info { background: #f9f9f9; padding: 8px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 5px; border-left: 4px solid #8d6e63; display: flex; justify-content: space-between; }
+        .action-btns { display: flex; gap: 15px; align-items: center; margin-top: 10px; }
+        .action-btn { background: none; border: 1px solid #ddd; border-radius: 5px; font-size: 0.75rem; cursor: pointer; padding: 3px 8px; color: #666; }
+        .resolve-btn { border-color: #2ecc71; color: #2ecc71; font-weight: bold; }
+        .resolve-btn:hover { background: #2ecc71; color: white; }
+        
+        #reply-info { background: #e8f4fd; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 0.85rem; border-left: 5px solid #3498db; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>北上尾歯科 掲示板</h1>
+    <h1>市会員 問題解決掲示板</h1>
     
     <div id="auth-section">
         <div id="login-ui">
-            <p style="text-align:center; font-size: 0.9rem; color: #8d6e63;">※投稿やいいねにはログインが必要です</p>
-            <button id="login-btn" style="cursor:pointer; padding: 8px 16px; border-radius: 20px; border: 1px solid #8d6e63; background: white; color: #8d6e63; font-weight: bold;">Googleでログイン</button>
+            <button id="login-btn" style="cursor:pointer; padding: 8px 16px; border-radius: 20px; border: 1px solid #3498db; background: white; color: #3498db; font-weight: bold;">Googleでログイン</button>
         </div>
         <div id="user-ui" class="hidden">
             <span id="display-name"></span> さん <button id="logout-btn" style="cursor:pointer; border:none; background:none; color:#888; text-decoration:underline;">ログアウト</button>
@@ -48,15 +49,14 @@
 
     <div id="post-area" class="hidden">
         <div id="reply-info" class="hidden">
-            <span><strong>@<span id="reply-target-name"></span></strong> さんへの返信中</span>
-            <span id="cancel-reply-btn" style="cursor:pointer; color: #fa3e3e; font-weight: bold;">✕ 取り消す</span>
+            <span><strong>@<span id="reply-target-name"></span></strong> さんへ返信・回答中</span>
+            <span id="cancel-reply-btn" style="cursor:pointer; color: #e74c3c;">✕ キャンセル</span>
         </div>
-        <textarea id="message" placeholder="今何してる？"></textarea>
-        <button id="send-btn" class="send-btn">🚀 掲示板に書く</button>
+        <textarea id="message" placeholder="問題点や報告内容を入力してください..."></textarea>
+        <button id="send-btn" class="send-btn">🚀 投稿する</button>
     </div>
 
-    <div class="timeline-title">タイムライン</div>
-    <div id="post-list"></div>
+    <div id="post-list" style="margin-top: 20px;"></div>
 </div>
 
 <script type="module">
@@ -81,23 +81,11 @@
     let currentUser = null;
     let replyParentId = null;
 
-    // ヘルパー関数：返信モードを終了させる
-    function clearReplyMode() {
+    document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
+    document.getElementById('logout-btn').onclick = () => signOut(auth);
+    document.getElementById('cancel-reply-btn').onclick = () => {
         replyParentId = null;
         document.getElementById('reply-info').classList.add('hidden');
-    }
-
-    // ボタンのイベント設定
-    document.getElementById('login-btn').onclick = async () => {
-        try { await signInWithPopup(auth, provider); } catch (e) { alert("エラー: " + e.message); }
-    };
-
-    document.getElementById('logout-btn').onclick = async () => {
-        try { await signOut(auth); } catch (e) { console.error(e); }
-    };
-
-    document.getElementById('cancel-reply-btn').onclick = () => {
-        clearReplyMode();
     };
 
     document.getElementById('send-btn').onclick = async () => {
@@ -108,12 +96,13 @@
                 name: currentUser.displayName,
                 text: msg,
                 parentId: replyParentId,
-                likes: [],
+                resolved: false, // デフォルトは未解決
                 uid: currentUser.uid,
                 timestamp: serverTimestamp()
             });
             document.getElementById('message').value = "";
-            clearReplyMode(); // 投稿後に返信モードを解除！
+            replyParentId = null;
+            document.getElementById('reply-info').classList.add('hidden');
         } catch (e) { console.error(e); }
     };
 
@@ -125,7 +114,7 @@
         if (user) document.getElementById('display-name').innerText = user.displayName;
     });
 
-    const q = query(collection(db, "posts"), orderBy("timestamp", "asc"));
+    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
     onSnapshot(q, (snapshot) => {
         const postList = document.getElementById('post-list');
         postList.innerHTML = "";
@@ -134,27 +123,27 @@
 
         const createPostElement = (post, isReply = false) => {
             const time = post.timestamp ? post.timestamp.toDate().toLocaleString('ja-JP') : "...";
-            const likesCount = post.likes ? post.likes.length : 0;
-            const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
+            const isResolved = post.resolved === true;
+            const isMyPost = currentUser && currentUser.uid === post.uid;
             
             const div = document.createElement('div');
-            div.className = `post ${isReply ? 'reply-post' : ''}`;
+            div.className = `post ${isReply ? 'reply-post' : ''} ${isResolved ? 'is-resolved' : ''}`;
+            
+            // 未解決・解決済みのバッジ
+            const statusBadge = isReply ? "" : `<span class="status-badge ${isResolved ? 'status-closed' : 'status-open'}">${isResolved ? '解決済み' : '未解決'}</span>`;
+
             div.innerHTML = `
-                <div class="post-header"><strong>${post.name}</strong> <span>${time}</span></div>
-                <div class="post-content">${post.text}</div>
+                <div class="post-header">
+                    ${statusBadge}
+                    <strong>${post.name}</strong> <span style="font-size:0.7rem; color:#999; margin-left:10px;">${time}</span>
+                </div>
+                <div class="post-content" style="margin-top:10px;">${post.text}</div>
                 <div class="action-btns">
-                    <button class="action-btn like-btn ${hasLiked ? 'active' : ''}">${hasLiked ? '❤️' : '🤍'} ${likesCount}</button>
-                    <button class="action-btn reply-btn">返信する</button>
-                    ${(currentUser && currentUser.uid === post.uid) ? `<button class="action-btn delete-btn">削除</button>` : ""}
+                    <button class="action-btn reply-btn">💬 返信・回答</button>
+                    ${(!isReply && isMyPost && !isResolved) ? `<button class="action-btn resolve-btn">✅ 解決済みにする</button>` : ""}
+                    ${isMyPost ? `<button class="action-btn delete-btn" style="border-color:#ffcccc; color:#ff7777;">削除</button>` : ""}
                 </div>
             `;
-
-            div.querySelector('.like-btn').onclick = async () => {
-                if (!currentUser) return alert("ログインが必要です");
-                await updateDoc(doc(db, "posts", post.id), { 
-                    likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) 
-                });
-            };
 
             div.querySelector('.reply-btn').onclick = () => {
                 replyParentId = post.id;
@@ -164,21 +153,28 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
+            if (div.querySelector('.resolve-btn')) {
+                div.querySelector('.resolve-btn').onclick = async () => {
+                    if (confirm("この問題を「解決済み」にしますか？")) {
+                        await updateDoc(doc(db, "posts", post.id), { resolved: true });
+                    }
+                };
+            }
+
             if (div.querySelector('.delete-btn')) {
                 div.querySelector('.delete-btn').onclick = async () => {
-                    if (confirm("削除しますか？")) await deleteDoc(doc(db, "posts", post.id));
+                    if (confirm("投稿を削除しますか？")) await deleteDoc(doc(db, "posts", post.id));
                 };
             }
             return div;
         };
 
-        allPosts.filter(p => !p.parentId).reverse().forEach(parent => {
+        // 親投稿（問題提起）をループ
+        allPosts.filter(p => !p.parentId).forEach(parent => {
             postList.appendChild(createPostElement(parent));
-            allPosts.filter(r => r.parentId === parent.id).forEach(reply => {
+            // その問題に対する返信（回答）を表示
+            allPosts.filter(r => r.parentId === parent.id).reverse().forEach(reply => {
                 postList.appendChild(createPostElement(reply, true));
-                allPosts.filter(nr => nr.parentId === reply.id).forEach(nr => {
-                    postList.appendChild(createPostElement(nr, true));
-                });
             });
         });
     });
