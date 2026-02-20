@@ -10,7 +10,7 @@
         .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e0d8c0; }
         h1 { color: #5d4037; text-align: left; border-bottom: 2px solid #5d4037; padding-bottom: 10px; font-size: 1.5rem; }
         #auth-section { text-align: right; font-size: 0.8rem; margin-bottom: 20px; }
-        .hidden { display: none; }
+        .hidden { display: none !important; } /* 確実に隠すために!importantを追加 */
         
         textarea { width: 100%; height: 80px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; font-size: 1rem; resize: none; margin-bottom: 10px; box-sizing: border-box; }
         .send-btn { background: #8d6e63; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; }
@@ -48,8 +48,8 @@
 
     <div id="post-area" class="hidden">
         <div id="reply-info" class="hidden">
-            <span><strong>@<span id="reply-target-name"></span></strong> さんへの返信</span>
-            <span id="cancel-reply-btn" style="cursor:pointer; color: #666;">✕ 取消</span>
+            <span><strong>@<span id="reply-target-name"></span></strong> さんへの返信中</span>
+            <span id="cancel-reply-btn" style="cursor:pointer; color: #fa3e3e; font-weight: bold;">✕ 取り消す</span>
         </div>
         <textarea id="message" placeholder="今何してる？"></textarea>
         <button id="send-btn" class="send-btn">🚀 掲示板に書く</button>
@@ -81,22 +81,26 @@
     let currentUser = null;
     let replyParentId = null;
 
-    // --- ボタンに命令を直接覚えさせる（addEventListener） ---
-
-    document.getElementById('login-btn').addEventListener('click', async () => {
-        try { await signInWithPopup(auth, provider); } catch (e) { alert("ログインエラー: " + e.message); }
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        try { await signOut(auth); } catch (e) { console.error(e); }
-    });
-
-    document.getElementById('cancel-reply-btn').addEventListener('click', () => {
+    // ヘルパー関数：返信モードを終了させる
+    function clearReplyMode() {
         replyParentId = null;
         document.getElementById('reply-info').classList.add('hidden');
-    });
+    }
 
-    document.getElementById('send-btn').addEventListener('click', async () => {
+    // ボタンのイベント設定
+    document.getElementById('login-btn').onclick = async () => {
+        try { await signInWithPopup(auth, provider); } catch (e) { alert("エラー: " + e.message); }
+    };
+
+    document.getElementById('logout-btn').onclick = async () => {
+        try { await signOut(auth); } catch (e) { console.error(e); }
+    };
+
+    document.getElementById('cancel-reply-btn').onclick = () => {
+        clearReplyMode();
+    };
+
+    document.getElementById('send-btn').onclick = async () => {
         const msg = document.getElementById('message').value;
         if (!msg || !currentUser) return;
         try {
@@ -109,31 +113,18 @@
                 timestamp: serverTimestamp()
             });
             document.getElementById('message').value = "";
-            replyParentId = null;
-            document.getElementById('reply-info').classList.add('hidden');
+            clearReplyMode(); // 投稿後に返信モードを解除！
         } catch (e) { console.error(e); }
-    });
+    };
 
-    // 認証状態の監視
     onAuthStateChanged(auth, (user) => {
-        const userUI = document.getElementById('user-ui');
-        const loginUI = document.getElementById('login-ui');
-        const postArea = document.getElementById('post-area');
-        if (user) {
-            currentUser = user;
-            userUI.classList.remove('hidden');
-            loginUI.classList.add('hidden');
-            postArea.classList.remove('hidden');
-            document.getElementById('display-name').innerText = user.displayName;
-        } else {
-            currentUser = null;
-            userUI.classList.add('hidden');
-            loginUI.classList.remove('hidden');
-            postArea.classList.add('hidden');
-        }
+        currentUser = user;
+        document.getElementById('user-ui').classList.toggle('hidden', !user);
+        document.getElementById('login-ui').classList.toggle('hidden', !!user);
+        document.getElementById('post-area').classList.toggle('hidden', !user);
+        if (user) document.getElementById('display-name').innerText = user.displayName;
     });
 
-    // タイムライン表示
     const q = query(collection(db, "posts"), orderBy("timestamp", "asc"));
     onSnapshot(q, (snapshot) => {
         const postList = document.getElementById('post-list');
@@ -145,7 +136,6 @@
             const time = post.timestamp ? post.timestamp.toDate().toLocaleString('ja-JP') : "...";
             const likesCount = post.likes ? post.likes.length : 0;
             const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
-            const isMyPost = currentUser && currentUser.uid === post.uid;
             
             const div = document.createElement('div');
             div.className = `post ${isReply ? 'reply-post' : ''}`;
@@ -155,15 +145,15 @@
                 <div class="action-btns">
                     <button class="action-btn like-btn ${hasLiked ? 'active' : ''}">${hasLiked ? '❤️' : '🤍'} ${likesCount}</button>
                     <button class="action-btn reply-btn">返信する</button>
-                    ${isMyPost ? `<button class="action-btn delete-btn">削除</button>` : ""}
+                    ${(currentUser && currentUser.uid === post.uid) ? `<button class="action-btn delete-btn">削除</button>` : ""}
                 </div>
             `;
 
-            // ボタンに個別にイベントをつける
             div.querySelector('.like-btn').onclick = async () => {
                 if (!currentUser) return alert("ログインが必要です");
-                const postRef = doc(db, "posts", post.id);
-                await updateDoc(postRef, { likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+                await updateDoc(doc(db, "posts", post.id), { 
+                    likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) 
+                });
             };
 
             div.querySelector('.reply-btn').onclick = () => {
@@ -171,9 +161,10 @@
                 document.getElementById('reply-info').classList.remove('hidden');
                 document.getElementById('reply-target-name').innerText = post.name;
                 document.getElementById('message').focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            if (isMyPost) {
+            if (div.querySelector('.delete-btn')) {
                 div.querySelector('.delete-btn').onclick = async () => {
                     if (confirm("削除しますか？")) await deleteDoc(doc(db, "posts", post.id));
                 };
