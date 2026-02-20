@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -11,18 +12,27 @@
         h1 { color: #5d4037; text-align: left; border-bottom: 2px solid #5d4037; padding-bottom: 10px; font-size: 1.5rem; }
         #auth-section { text-align: right; font-size: 0.8rem; margin-bottom: 20px; }
         .hidden { display: none; }
-        textarea { width: 100%; height: 80px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; font-size: 1rem; resize: none; margin-bottom: 10px; }
+        
+        /* 入力エリア */
+        textarea { width: 100%; height: 80px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; font-size: 1rem; resize: none; margin-bottom: 10px; box-sizing: border-box; }
         .send-btn { background: #8d6e63; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; }
         
         .timeline-title { font-weight: bold; color: #8d6e63; margin-top: 30px; border-left: 5px solid #8d6e63; padding-left: 10px; }
-        .post { border-bottom: 1px dashed #ccc; padding: 15px 0; position: relative; }
-        .post-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; }
-        .reply-to { background: #f0f0f0; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; margin-bottom: 5px; color: #666; display: inline-block; }
         
-        /* 返信ボタンのスタイル */
-        .reply-btn { background: none; border: 1px solid #8d6e63; color: #8d6e63; border-radius: 15px; padding: 2px 10px; font-size: 0.7rem; cursor: pointer; margin-top: 5px; }
-        .reply-btn:hover { background: #8d6e63; color: white; }
-        .cancel-reply { font-size: 0.8rem; color: #fa3e3e; cursor: pointer; margin-left: 10px; }
+        /* YouTube風スレッド構造 */
+        .post { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .reply-post { margin-left: 40px; border-left: 2px solid #f0f0f0; padding-left: 15px; border-bottom: none; padding-bottom: 10px; }
+        
+        .post-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; align-items: center; }
+        .post-content { white-space: pre-wrap; margin: 8px 0; font-size: 1rem; color: #333; }
+        
+        /* ボタン類 */
+        .action-btns { display: flex; gap: 15px; align-items: center; }
+        .reply-btn { background: none; border: none; color: #065fd4; font-weight: bold; font-size: 0.75rem; cursor: pointer; padding: 0; }
+        .delete-btn { background: none; border: none; color: #999; cursor: pointer; font-size: 0.75rem; }
+        .delete-btn:hover { color: #cc0000; }
+        
+        #reply-info { background: #f9f9f9; padding: 8px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 5px; border-left: 4px solid #8d6e63; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -39,8 +49,8 @@
 
     <div id="post-area" class="hidden">
         <div id="reply-info" class="hidden">
-            <span class="reply-to">@<span id="reply-target-name"></span> さんへ返信中</span>
-            <span class="cancel-reply" onclick="cancelReply()">✕ 取消</span>
+            <span><strong>@<span id="reply-target-name"></span></strong> さんへの返信</span>
+            <span style="cursor:pointer; color: #666;" onclick="cancelReply()">✕ 取消</span>
         </div>
         <textarea id="message" placeholder="今何してる？"></textarea>
         <button id="send-btn" class="send-btn" onclick="handleAddPost()">🚀 掲示板に書く</button>
@@ -52,7 +62,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -70,7 +80,8 @@
     const provider = new GoogleAuthProvider();
 
     let currentUser = null;
-    let replyTarget = null; // 返信先の情報を入れる変数
+    let replyParentId = null; // 返信先の投稿ID
+    let replyTargetName = null;
 
     onAuthStateChanged(auth, (user) => {
         const userUI = document.getElementById('user-ui');
@@ -93,29 +104,37 @@
     window.handleLogin = () => signInWithPopup(auth, provider);
     window.handleLogout = () => signOut(auth);
 
-    // 返信ボタンを押した時
-    window.setReply = (name) => {
-        replyTarget = name;
+    // 返信の準備
+    window.setReply = (postId, name) => {
+        replyParentId = postId;
+        replyTargetName = name;
         document.getElementById('reply-info').classList.remove('hidden');
         document.getElementById('reply-target-name').innerText = name;
         document.getElementById('message').focus();
+        document.getElementById('post-area').scrollIntoView({ behavior: 'smooth' });
     };
 
-    // 返信を取り消す時
     window.cancelReply = () => {
-        replyTarget = null;
+        replyParentId = null;
+        replyTargetName = null;
         document.getElementById('reply-info').classList.add('hidden');
+    };
+
+    // 削除機能
+    window.handleDelete = async (postId) => {
+        if (confirm("この投稿を削除しますか？")) {
+            await deleteDoc(doc(db, "posts", postId));
+        }
     };
 
     window.handleAddPost = async () => {
         const msg = document.getElementById('message').value;
         if (!msg) return;
-
         try {
             await addDoc(collection(db, "posts"), {
                 name: currentUser.displayName,
                 text: msg,
-                replyTo: replyTarget, // 返信先の名前を保存
+                parentId: replyParentId, // 親投稿のIDを保存（YouTube形式）
                 uid: currentUser.uid,
                 timestamp: serverTimestamp()
             });
@@ -124,26 +143,49 @@
         } catch (e) { console.error(e); }
     };
 
-    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+    const q = query(collection(db, "posts"), orderBy("timestamp", "asc")); // 古い順に取得して並び替え
     onSnapshot(q, (snapshot) => {
         const postList = document.getElementById('post-list');
         postList.innerHTML = "";
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const time = data.timestamp ? data.timestamp.toDate().toLocaleString('ja-JP') : "送信中...";
+        const allPosts = [];
+        snapshot.forEach(d => allPosts.push({id: d.id, ...d.data()}));
+
+        // 1. 親コメントだけを先に表示
+        const parents = allPosts.filter(p => !p.parentId);
+        parents.reverse().forEach(parent => {
+            const time = parent.timestamp ? parent.timestamp.toDate().toLocaleString('ja-JP') : "...";
+            const isMyPost = currentUser && currentUser.uid === parent.uid;
             
-            const postDiv = document.createElement('div');
-            postDiv.className = 'post';
-            postDiv.innerHTML = `
-                ${data.replyTo ? `<div class="reply-to">Re: ${data.replyTo} さん</div>` : ""}
+            const parentDiv = document.createElement('div');
+            parentDiv.className = 'post';
+            parentDiv.innerHTML = `
                 <div class="post-header">
-                    <strong>${data.name} さん</strong>
-                    <span>${time}</span>
+                    <strong>${parent.name}</strong> <span>${time}</span>
                 </div>
-                <div style="white-space: pre-wrap; margin: 10px 0;">${data.text}</div>
-                <button class="reply-btn" onclick="setReply('${data.name}')">↩ 返信する</button>
+                <div class="post-content">${parent.text}</div>
+                <div class="action-btns">
+                    <button class="reply-btn" onclick="setReply('${parent.id}', '${parent.name}')">返信する</button>
+                    ${isMyPost ? `<button class="delete-btn" onclick="handleDelete('${parent.id}')">削除</button>` : ""}
+                </div>
             `;
-            postList.appendChild(postDiv);
+            postList.appendChild(parentDiv);
+
+            // 2. その親に紐づく返信を表示（YouTube風インデント）
+            const replies = allPosts.filter(r => r.parentId === parent.id);
+            replies.forEach(reply => {
+                const rTime = reply.timestamp ? reply.timestamp.toDate().toLocaleString('ja-JP') : "...";
+                const isMyReply = currentUser && currentUser.uid === reply.uid;
+                const replyDiv = document.createElement('div');
+                replyDiv.className = 'post reply-post';
+                replyDiv.innerHTML = `
+                    <div class="post-header">
+                        <strong>${reply.name}</strong> <span>${rTime}</span>
+                    </div>
+                    <div class="post-content">${reply.text}</div>
+                    ${isMyReply ? `<button class="delete-btn" onclick="handleDelete('${reply.id}')">削除</button>` : ""}
+                `;
+                postList.appendChild(replyDiv);
+            });
         });
     });
 </script>
