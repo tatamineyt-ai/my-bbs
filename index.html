@@ -17,14 +17,12 @@
         
         .timeline-title { font-weight: bold; color: #8d6e63; margin-top: 30px; border-left: 5px solid #8d6e63; padding-left: 10px; }
         
-        /* 投稿スタイル */
         .post { border-bottom: 1px solid #eee; padding: 15px 0; }
         .reply-post { margin-left: 40px; border-left: 2px solid #f0f0f0; padding-left: 15px; }
         
         .post-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; align-items: center; }
         .post-content { white-space: pre-wrap; margin: 8px 0; font-size: 1rem; color: #333; }
         
-        /* アクションボタン（YouTube風） */
         .action-btns { display: flex; gap: 20px; align-items: center; margin-top: 5px; }
         .action-btn { background: none; border: none; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; }
         .reply-btn { color: #065fd4; font-weight: bold; }
@@ -38,13 +36,14 @@
 <body>
 <div class="container">
     <h1>北上尾歯科 掲示板</h1>
+    
     <div id="auth-section">
         <div id="login-ui">
-            <p style="text-align:center;">※投稿にはログインが必要です</p>
-            <button onclick="handleLogin()">Googleでログイン</button>
+            <p style="text-align:center; font-size: 0.9rem; color: #8d6e63;">※投稿やいいねにはログインが必要です</p>
+            <button onclick="handleLogin()" style="cursor:pointer; padding: 8px 16px; border-radius: 20px; border: 1px solid #8d6e63; background: white; color: #8d6e63; font-weight: bold;">Googleでログイン</button>
         </div>
         <div id="user-ui" class="hidden">
-            <span id="display-name"></span> さん <button onclick="handleLogout()">ログアウト</button>
+            <span id="display-name"></span> さん <button onclick="handleLogout()" style="cursor:pointer; border:none; background:none; color:#888; text-decoration:underline;">ログアウト</button>
         </div>
     </div>
 
@@ -83,6 +82,24 @@
     let currentUser = null;
     let replyParentId = null;
 
+    // --- ログイン・ログアウト命令（windowに直接紐付け） ---
+    window.handleLogin = async function() {
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            console.error("Login Error:", error);
+            alert("ログインに失敗しました。承認済みドメインを確認してください。");
+        }
+    };
+
+    window.handleLogout = async function() {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Logout Error:", error);
+        }
+    };
+
     onAuthStateChanged(auth, (user) => {
         const userUI = document.getElementById('user-ui');
         const loginUI = document.getElementById('login-ui');
@@ -101,9 +118,6 @@
         }
     });
 
-    window.handleLogin = () => signInWithPopup(auth, provider);
-    window.handleLogout = () => signOut(auth);
-
     window.setReply = (postId, name) => {
         replyParentId = postId;
         document.getElementById('reply-info').classList.remove('hidden');
@@ -117,9 +131,11 @@
         document.getElementById('reply-info').classList.add('hidden');
     };
 
-    // いいね機能
     window.handleLike = async (postId, likes) => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            alert("いいねするにはログインが必要です");
+            return;
+        }
         const postRef = doc(db, "posts", postId);
         const hasLiked = likes && likes.includes(currentUser.uid);
         if (hasLiked) {
@@ -147,3 +163,9 @@
                 uid: currentUser.uid,
                 timestamp: serverTimestamp()
             });
+            document.getElementById('message').value = "";
+            cancelReply();
+        } catch (e) { console.error(e); }
+    };
+
+    const q = query(collection
