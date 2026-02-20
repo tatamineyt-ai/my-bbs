@@ -10,37 +10,35 @@
         .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e0d8c0; }
         h1 { color: #5d4037; text-align: left; border-bottom: 2px solid #d7ccc8; padding-bottom: 10px; font-size: 1.5rem; margin-top: 0; }
         
-        /* 状況サマリーパネル */
         .summary-panel { display: flex; gap: 10px; margin-bottom: 20px; background: #efebe9; padding: 15px; border-radius: 12px; }
         .summary-item { flex: 1; background: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
-        .summary-item:hover { transform: translateY(-2px); border-color: #8d6e63; }
         .summary-item.active { border-color: #8d6e63; background: #fafafa; box-shadow: inset 0 0 5px rgba(0,0,0,0.1); }
         .summary-label { font-size: 0.75rem; color: #795548; display: block; pointer-events: none; }
         .summary-count { font-size: 1.4rem; font-weight: bold; color: #5d4037; pointer-events: none; }
-        .count-unit { font-size: 0.8rem; margin-left: 2px; pointer-events: none; }
 
-        /* カテゴリーバッジ */
         .cat-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-right: 8px; vertical-align: middle; }
         .cat-report { background: #e3f2fd; color: #1976d2; } 
         .cat-info { background: #f3e5f5; color: #7b1fa2; }   
         .cat-problem { background: #ffebee; color: #c62828; } 
         .status-resolved { background: #e8f5e9; color: #2e7d32; } 
 
-        /* 入力エリア */
+        .resolved-info { font-size: 0.75rem; color: #2e7d32; background: #f1f8f1; padding: 4px 8px; border-radius: 4px; margin-top: 5px; display: block; font-weight: bold; }
+
         .input-group { margin-bottom: 15px; }
         label { font-size: 0.85rem; color: #5d4037; font-weight: bold; display: block; margin-bottom: 5px; }
         select, textarea { width: 100%; border: 2px solid #d7ccc8; border-radius: 8px; padding: 10px; font-family: inherit; font-size: 1rem; box-sizing: border-box; }
-        select { height: 40px; margin-bottom: 10px; cursor: pointer; background: white; }
         .send-btn { background: #8d6e63; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; font-size: 1rem; }
         
         .post { border-bottom: 1px solid #efebe9; padding: 15px; transition: 0.3s; }
-        .post.is-resolved { opacity: 0.6; background-color: #fafafa; }
+        .post.is-resolved { background-color: #f9faf9; border-left: 4px solid #2e7d32; }
         .reply-post { margin-left: 35px; border-left: 3px solid #d7ccc8; padding-left: 15px; margin-top: 5px; }
         
         #auth-section { text-align: right; margin-bottom: 15px; font-size: 0.8rem; }
         .hidden { display: none !important; }
-        .action-btns { display: flex; gap: 15px; margin-top: 10px; }
+        .action-btns { display: flex; gap: 15px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
         .btn-text { background: none; border: none; font-size: 0.75rem; cursor: pointer; color: #8d6e63; padding: 0; text-decoration: underline; }
+        .like-btn { text-decoration: none; font-size: 0.9rem; }
+        .like-btn.active { color: #ff4757; font-weight: bold; }
         #reply-info { background: #fdf5e6; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 0.8rem; border-left: 4px solid #8d6e63; }
     </style>
 </head>
@@ -58,32 +56,19 @@
     </div>
 
     <div class="summary-panel">
-        <div class="summary-item active" id="filter-all">
-            <span class="summary-label">すべて</span>
-            <span class="summary-count" id="count-all">0</span><span class="count-unit">件</span>
-        </div>
-        <div class="summary-item" id="filter-report">
-            <span class="summary-label">報告</span>
-            <span class="summary-count" id="count-report">0</span><span class="count-unit">件</span>
-        </div>
-        <div class="summary-item" id="filter-info">
-            <span class="summary-label">連絡</span>
-            <span class="summary-count" id="count-info">0</span><span class="count-unit">件</span>
-        </div>
-        <div class="summary-item" id="filter-problem">
-            <span class="summary-label">問題(未解決)</span>
-            <span class="summary-count" id="count-problem" style="color: #c62828;">0</span><span class="count-unit">件</span>
-        </div>
+        <div class="summary-item active" id="filter-all"><span class="summary-label">すべて</span><span class="summary-count" id="count-all">0</span></div>
+        <div class="summary-item" id="filter-report"><span class="summary-label">報告</span><span class="summary-count" id="count-report">0</span></div>
+        <div class="summary-item" id="filter-info"><span class="summary-label">連絡</span><span class="summary-count" id="count-info">0</span></div>
+        <div class="summary-item" id="filter-problem"><span class="summary-label">問題(未解決)</span><span class="summary-count" id="count-problem" style="color: #c62828;">0</span></div>
     </div>
 
     <div id="post-area" class="hidden">
         <div id="reply-info" class="hidden">
             <span><strong>@<span id="reply-target-name"></span></strong> さんへ返信中</span>
-            <button id="cancel-reply-btn" style="cursor:pointer; border:none; background:none; color: #c62828; font-weight: bold; margin-left: 10px;">✕ 取消</button>
+            <button id="cancel-reply-btn" style="cursor:pointer; border:none; background:none; color: #c62828; font-weight: bold;">✕ 取消</button>
         </div>
-        
         <div class="input-group">
-            <label for="category-select">カテゴリー選択</label>
+            <label>カテゴリー選択</label>
             <select id="category-select">
                 <option value="報告">📋 報告</option>
                 <option value="連絡">✉️ 連絡</option>
@@ -99,7 +84,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -121,42 +106,23 @@
     let currentFilter = 'すべて';
     let cachedPosts = [];
 
-    // --- ボタンの動作設定（addEventListenerで確実に紐付け） ---
-
-    document.getElementById('login-btn').addEventListener('click', async () => {
-        try { await signInWithPopup(auth, provider); } catch (e) { alert("ログイン失敗: " + e.message); }
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        try { await signOut(auth); } catch (e) { console.error(e); }
-    });
-
-    document.getElementById('cancel-reply-btn').addEventListener('click', () => {
-        replyParentId = null;
-        document.getElementById('reply-info').classList.add('hidden');
-    });
+    document.getElementById('login-btn').addEventListener('click', () => signInWithPopup(auth, provider));
+    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+    document.getElementById('cancel-reply-btn').addEventListener('click', () => { replyParentId = null; document.getElementById('reply-info').classList.add('hidden'); });
 
     document.getElementById('send-btn').addEventListener('click', async () => {
         const msg = document.getElementById('message').value;
         const cat = document.getElementById('category-select').value;
         if (!msg || !currentUser) return;
-        try {
-            await addDoc(collection(db, "posts"), {
-                name: currentUser.displayName,
-                text: msg,
-                category: cat,
-                parentId: replyParentId,
-                resolved: false,
-                uid: currentUser.uid,
-                timestamp: serverTimestamp()
-            });
-            document.getElementById('message').value = "";
-            replyParentId = null;
-            document.getElementById('reply-info').classList.add('hidden');
-        } catch (e) { console.error(e); }
+        await addDoc(collection(db, "posts"), {
+            name: currentUser.displayName, text: msg, category: cat, parentId: replyParentId,
+            resolved: false, resolvedBy: null, likes: [], uid: currentUser.uid, timestamp: serverTimestamp()
+        });
+        document.getElementById('message').value = "";
+        replyParentId = null;
+        document.getElementById('reply-info').classList.add('hidden');
     });
 
-    // フィルタリングボタンの設定
     const filterMap = { 'filter-all': 'すべて', 'filter-report': '報告', 'filter-info': '連絡', 'filter-problem': '問題' };
     Object.keys(filterMap).forEach(id => {
         document.getElementById(id).addEventListener('click', () => {
@@ -167,7 +133,6 @@
         });
     });
 
-    // 認証状態の監視
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         document.getElementById('user-ui').classList.toggle('hidden', !user);
@@ -176,9 +141,7 @@
         if (user) document.getElementById('display-name').innerText = user.displayName;
     });
 
-    // データのリアルタイム取得
-    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
-    onSnapshot(q, (snapshot) => {
+    onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snapshot) => {
         cachedPosts = [];
         snapshot.forEach(d => cachedPosts.push({id: d.id, ...d.data()}));
         updateSummary();
@@ -187,17 +150,8 @@
 
     function updateSummary() {
         const counts = { 'すべて': 0, '報告': 0, '連絡': 0, '問題': 0 };
-        cachedPosts.forEach(p => {
-            if (!p.parentId) {
-                counts['すべて']++;
-                if (p.category === '問題' && p.resolved) { /* 解決済みは問題数には入れない */ } 
-                else { counts[p.category]++; }
-            }
-        });
-        document.getElementById('count-all').innerText = counts['すべて'];
-        document.getElementById('count-report').innerText = counts['報告'];
-        document.getElementById('count-info').innerText = counts['連絡'];
-        document.getElementById('count-problem').innerText = counts['問題'];
+        cachedPosts.forEach(p => { if (!p.parentId) { counts['すべて']++; if (!(p.category === '問題' && p.resolved)) counts[p.category]++; } });
+        ['all', 'report', 'info', 'problem'].forEach(k => document.getElementById(`count-${k}`).innerText = counts[filterMap[`filter-${k}`]]);
     }
 
     function renderTimeline() {
@@ -206,12 +160,15 @@
 
         const createPostHTML = (post, isReply = false) => {
             const isResolved = post.resolved === true;
+            const likesCount = post.likes ? post.likes.length : 0;
+            const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
             const isMyPost = currentUser && currentUser.uid === post.uid;
             const time = post.timestamp ? post.timestamp.toDate().toLocaleString('ja-JP') : "...";
             
             let catClass = post.category === '報告' ? 'cat-report' : post.category === '連絡' ? 'cat-info' : 'cat-problem';
             const catBadge = isReply ? "" : `<span class="cat-tag ${catClass}">${post.category}</span>`;
             const resolvedBadge = (post.category === '問題' && isResolved) ? `<span class="cat-tag status-resolved">解決済</span>` : "";
+            const resolverInfo = (isResolved && post.resolvedBy) ? `<div class="resolved-info">✅ ${post.resolvedBy}さんが解決済みにしました</div>` : "";
 
             const div = document.createElement('div');
             div.className = `post ${isReply ? 'reply-post' : ''} ${isResolved ? 'is-resolved' : ''}`;
@@ -219,13 +176,21 @@
                 <div style="font-size:0.8rem; color:#8d6e63;">
                     ${catBadge} ${resolvedBadge} <strong>${post.name}</strong> <span style="color:#bbb; margin-left:8px;">${time}</span>
                 </div>
-                <div style="margin:8px 0; white-space:pre-wrap; line-height:1.5;">${post.text}</div>
+                <div class="post-content" style="margin:8px 0; white-space:pre-wrap; line-height:1.5;">${post.text}</div>
+                ${resolverInfo}
                 <div class="action-btns">
+                    <button class="btn-text like-btn ${hasLiked ? 'active' : ''}">${hasLiked ? '❤️' : '🤍'} ${likesCount}</button>
                     <button class="btn-text reply-btn">返信</button>
-                    ${(!isReply && post.category === '問題' && !isResolved && isMyPost) ? `<button class="btn-text resolve-btn" style="color:green;">解決済みにする</button>` : ""}
+                    ${(!isReply && post.category === '問題' && !isResolved) ? `<button class="btn-text resolve-btn" style="color:green; font-weight:bold;">解決済みにする</button>` : ""}
+                    ${(!isReply && isResolved) ? `<button class="btn-text unresolve-btn" style="color:#666;">解決を取り消す</button>` : ""}
                     ${isMyPost ? `<button class="btn-text delete-btn" style="color:#e57373;">削除</button>` : ""}
                 </div>
             `;
+
+            div.querySelector('.like-btn').onclick = async () => {
+                if (!currentUser) return alert("ログインが必要です");
+                await updateDoc(doc(db, "posts", post.id), { likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+            };
 
             div.querySelector('.reply-btn').onclick = () => {
                 replyParentId = post.id;
@@ -237,25 +202,26 @@
 
             if (div.querySelector('.resolve-btn')) {
                 div.querySelector('.resolve-btn').onclick = async () => {
-                    await updateDoc(doc(db, "posts", post.id), { resolved: true });
+                    if (confirm("解決済みにしますか？")) await updateDoc(doc(db, "posts", post.id), { resolved: true, resolvedBy: currentUser.displayName });
+                };
+            }
+
+            if (div.querySelector('.unresolve-btn')) {
+                div.querySelector('.unresolve-btn').onclick = async () => {
+                    if (confirm("未解決に戻しますか？")) await updateDoc(doc(db, "posts", post.id), { resolved: false, resolvedBy: null });
                 };
             }
 
             if (div.querySelector('.delete-btn')) {
-                div.querySelector('.delete-btn').onclick = async () => {
-                    if (confirm("削除しますか？")) await deleteDoc(doc(db, "posts", post.id));
-                };
+                div.querySelector('.delete-btn').onclick = async () => { if (confirm("削除しますか？")) await deleteDoc(doc(db, "posts", post.id)); };
             }
             return div;
         };
 
-        const parents = cachedPosts.filter(p => !p.parentId);
-        parents.forEach(parent => {
+        cachedPosts.filter(p => !p.parentId).forEach(parent => {
             if (currentFilter !== 'すべて' && parent.category !== currentFilter) return;
             postList.appendChild(createPostHTML(parent));
-            cachedPosts.filter(r => r.parentId === parent.id).reverse().forEach(reply => {
-                postList.appendChild(createPostHTML(reply, true));
-            });
+            cachedPosts.filter(r => r.parentId === parent.id).reverse().forEach(reply => postList.appendChild(createPostHTML(reply, true)));
         });
     }
 </script>
