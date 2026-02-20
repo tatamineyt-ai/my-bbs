@@ -16,7 +16,6 @@
         .send-btn { background: #8d6e63; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; }
         
         .timeline-title { font-weight: bold; color: #8d6e63; margin-top: 30px; border-left: 5px solid #8d6e63; padding-left: 10px; }
-        
         .post { border-bottom: 1px solid #eee; padding: 15px 0; }
         .reply-post { margin-left: 40px; border-left: 2px solid #f0f0f0; padding-left: 15px; }
         
@@ -40,20 +39,20 @@
     <div id="auth-section">
         <div id="login-ui">
             <p style="text-align:center; font-size: 0.9rem; color: #8d6e63;">※投稿やいいねにはログインが必要です</p>
-            <button onclick="handleLogin()" style="cursor:pointer; padding: 8px 16px; border-radius: 20px; border: 1px solid #8d6e63; background: white; color: #8d6e63; font-weight: bold;">Googleでログイン</button>
+            <button id="login-btn" style="cursor:pointer; padding: 8px 16px; border-radius: 20px; border: 1px solid #8d6e63; background: white; color: #8d6e63; font-weight: bold;">Googleでログイン</button>
         </div>
         <div id="user-ui" class="hidden">
-            <span id="display-name"></span> さん <button onclick="handleLogout()" style="cursor:pointer; border:none; background:none; color:#888; text-decoration:underline;">ログアウト</button>
+            <span id="display-name"></span> さん <button id="logout-btn" style="cursor:pointer; border:none; background:none; color:#888; text-decoration:underline;">ログアウト</button>
         </div>
     </div>
 
     <div id="post-area" class="hidden">
         <div id="reply-info" class="hidden">
             <span><strong>@<span id="reply-target-name"></span></strong> さんへの返信</span>
-            <span style="cursor:pointer; color: #666;" onclick="cancelReply()">✕ 取消</span>
+            <span id="cancel-reply-btn" style="cursor:pointer; color: #666;">✕ 取消</span>
         </div>
         <textarea id="message" placeholder="今何してる？"></textarea>
-        <button id="send-btn" class="send-btn" onclick="handleAddPost()">🚀 掲示板に書く</button>
+        <button id="send-btn" class="send-btn">🚀 掲示板に書く</button>
     </div>
 
     <div class="timeline-title">タイムライン</div>
@@ -82,24 +81,40 @@
     let currentUser = null;
     let replyParentId = null;
 
-    // --- ログイン・ログアウト命令（windowに直接紐付け） ---
-    window.handleLogin = async function() {
-        try {
-            await signInWithPopup(auth, provider);
-        } catch (error) {
-            console.error("Login Error:", error);
-            alert("ログインに失敗しました。承認済みドメインを確認してください。");
-        }
-    };
+    // --- ボタンに命令を直接覚えさせる（addEventListener） ---
 
-    window.handleLogout = async function() {
-        try {
-            await signOut(auth);
-        } catch (error) {
-            console.error("Logout Error:", error);
-        }
-    };
+    document.getElementById('login-btn').addEventListener('click', async () => {
+        try { await signInWithPopup(auth, provider); } catch (e) { alert("ログインエラー: " + e.message); }
+    });
 
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        try { await signOut(auth); } catch (e) { console.error(e); }
+    });
+
+    document.getElementById('cancel-reply-btn').addEventListener('click', () => {
+        replyParentId = null;
+        document.getElementById('reply-info').classList.add('hidden');
+    });
+
+    document.getElementById('send-btn').addEventListener('click', async () => {
+        const msg = document.getElementById('message').value;
+        if (!msg || !currentUser) return;
+        try {
+            await addDoc(collection(db, "posts"), {
+                name: currentUser.displayName,
+                text: msg,
+                parentId: replyParentId,
+                likes: [],
+                uid: currentUser.uid,
+                timestamp: serverTimestamp()
+            });
+            document.getElementById('message').value = "";
+            replyParentId = null;
+            document.getElementById('reply-info').classList.add('hidden');
+        } catch (e) { console.error(e); }
+    });
+
+    // 認証状態の監視
     onAuthStateChanged(auth, (user) => {
         const userUI = document.getElementById('user-ui');
         const loginUI = document.getElementById('login-ui');
@@ -118,54 +133,64 @@
         }
     });
 
-    window.setReply = (postId, name) => {
-        replyParentId = postId;
-        document.getElementById('reply-info').classList.remove('hidden');
-        document.getElementById('reply-target-name').innerText = name;
-        document.getElementById('message').focus();
-        document.getElementById('post-area').scrollIntoView({ behavior: 'smooth' });
-    };
+    // タイムライン表示
+    const q = query(collection(db, "posts"), orderBy("timestamp", "asc"));
+    onSnapshot(q, (snapshot) => {
+        const postList = document.getElementById('post-list');
+        postList.innerHTML = "";
+        const allPosts = [];
+        snapshot.forEach(d => allPosts.push({id: d.id, ...d.data()}));
 
-    window.cancelReply = () => {
-        replyParentId = null;
-        document.getElementById('reply-info').classList.add('hidden');
-    };
+        const createPostElement = (post, isReply = false) => {
+            const time = post.timestamp ? post.timestamp.toDate().toLocaleString('ja-JP') : "...";
+            const likesCount = post.likes ? post.likes.length : 0;
+            const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
+            const isMyPost = currentUser && currentUser.uid === post.uid;
+            
+            const div = document.createElement('div');
+            div.className = `post ${isReply ? 'reply-post' : ''}`;
+            div.innerHTML = `
+                <div class="post-header"><strong>${post.name}</strong> <span>${time}</span></div>
+                <div class="post-content">${post.text}</div>
+                <div class="action-btns">
+                    <button class="action-btn like-btn ${hasLiked ? 'active' : ''}">${hasLiked ? '❤️' : '🤍'} ${likesCount}</button>
+                    <button class="action-btn reply-btn">返信する</button>
+                    ${isMyPost ? `<button class="action-btn delete-btn">削除</button>` : ""}
+                </div>
+            `;
 
-    window.handleLike = async (postId, likes) => {
-        if (!currentUser) {
-            alert("いいねするにはログインが必要です");
-            return;
-        }
-        const postRef = doc(db, "posts", postId);
-        const hasLiked = likes && likes.includes(currentUser.uid);
-        if (hasLiked) {
-            await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
-        } else {
-            await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
-        }
-    };
+            // ボタンに個別にイベントをつける
+            div.querySelector('.like-btn').onclick = async () => {
+                if (!currentUser) return alert("ログインが必要です");
+                const postRef = doc(db, "posts", post.id);
+                await updateDoc(postRef, { likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+            };
 
-    window.handleDelete = async (postId) => {
-        if (confirm("この投稿を削除しますか？")) {
-            await deleteDoc(doc(db, "posts", postId));
-        }
-    };
+            div.querySelector('.reply-btn').onclick = () => {
+                replyParentId = post.id;
+                document.getElementById('reply-info').classList.remove('hidden');
+                document.getElementById('reply-target-name').innerText = post.name;
+                document.getElementById('message').focus();
+            };
 
-    window.handleAddPost = async () => {
-        const msg = document.getElementById('message').value;
-        if (!msg) return;
-        try {
-            await addDoc(collection(db, "posts"), {
-                name: currentUser.displayName,
-                text: msg,
-                parentId: replyParentId,
-                likes: [],
-                uid: currentUser.uid,
-                timestamp: serverTimestamp()
+            if (isMyPost) {
+                div.querySelector('.delete-btn').onclick = async () => {
+                    if (confirm("削除しますか？")) await deleteDoc(doc(db, "posts", post.id));
+                };
+            }
+            return div;
+        };
+
+        allPosts.filter(p => !p.parentId).reverse().forEach(parent => {
+            postList.appendChild(createPostElement(parent));
+            allPosts.filter(r => r.parentId === parent.id).forEach(reply => {
+                postList.appendChild(createPostElement(reply, true));
+                allPosts.filter(nr => nr.parentId === reply.id).forEach(nr => {
+                    postList.appendChild(createPostElement(nr, true));
+                });
             });
-            document.getElementById('message').value = "";
-            cancelReply();
-        } catch (e) { console.error(e); }
-    };
-
-    const q = query(collection
+        });
+    });
+</script>
+</body>
+</html>
