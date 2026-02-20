@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -13,24 +12,25 @@
         #auth-section { text-align: right; font-size: 0.8rem; margin-bottom: 20px; }
         .hidden { display: none; }
         
-        /* 入力エリア */
         textarea { width: 100%; height: 80px; border: 2px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; font-size: 1rem; resize: none; margin-bottom: 10px; box-sizing: border-box; }
         .send-btn { background: #8d6e63; color: white; padding: 12px; border: none; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold; }
         
         .timeline-title { font-weight: bold; color: #8d6e63; margin-top: 30px; border-left: 5px solid #8d6e63; padding-left: 10px; }
         
-        /* YouTube風スレッド構造 */
+        /* 投稿スタイル */
         .post { border-bottom: 1px solid #eee; padding: 15px 0; }
-        .reply-post { margin-left: 40px; border-left: 2px solid #f0f0f0; padding-left: 15px; border-bottom: none; padding-bottom: 10px; }
+        .reply-post { margin-left: 40px; border-left: 2px solid #f0f0f0; padding-left: 15px; }
         
         .post-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; align-items: center; }
         .post-content { white-space: pre-wrap; margin: 8px 0; font-size: 1rem; color: #333; }
         
-        /* ボタン類 */
-        .action-btns { display: flex; gap: 15px; align-items: center; }
-        .reply-btn { background: none; border: none; color: #065fd4; font-weight: bold; font-size: 0.75rem; cursor: pointer; padding: 0; }
-        .delete-btn { background: none; border: none; color: #999; cursor: pointer; font-size: 0.75rem; }
-        .delete-btn:hover { color: #cc0000; }
+        /* アクションボタン（YouTube風） */
+        .action-btns { display: flex; gap: 20px; align-items: center; margin-top: 5px; }
+        .action-btn { background: none; border: none; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; }
+        .reply-btn { color: #065fd4; font-weight: bold; }
+        .like-btn { color: #666; }
+        .like-btn.active { color: #ff4757; font-weight: bold; }
+        .delete-btn { color: #999; margin-left: auto; }
         
         #reply-info { background: #f9f9f9; padding: 8px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 5px; border-left: 4px solid #8d6e63; display: flex; justify-content: space-between; }
     </style>
@@ -40,6 +40,7 @@
     <h1>北上尾歯科 掲示板</h1>
     <div id="auth-section">
         <div id="login-ui">
+            <p style="text-align:center;">※投稿にはログインが必要です</p>
             <button onclick="handleLogin()">Googleでログイン</button>
         </div>
         <div id="user-ui" class="hidden">
@@ -62,7 +63,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -80,8 +81,7 @@
     const provider = new GoogleAuthProvider();
 
     let currentUser = null;
-    let replyParentId = null; // 返信先の投稿ID
-    let replyTargetName = null;
+    let replyParentId = null;
 
     onAuthStateChanged(auth, (user) => {
         const userUI = document.getElementById('user-ui');
@@ -104,10 +104,8 @@
     window.handleLogin = () => signInWithPopup(auth, provider);
     window.handleLogout = () => signOut(auth);
 
-    // 返信の準備
     window.setReply = (postId, name) => {
         replyParentId = postId;
-        replyTargetName = name;
         document.getElementById('reply-info').classList.remove('hidden');
         document.getElementById('reply-target-name').innerText = name;
         document.getElementById('message').focus();
@@ -116,11 +114,21 @@
 
     window.cancelReply = () => {
         replyParentId = null;
-        replyTargetName = null;
         document.getElementById('reply-info').classList.add('hidden');
     };
 
-    // 削除機能
+    // いいね機能
+    window.handleLike = async (postId, likes) => {
+        if (!currentUser) return;
+        const postRef = doc(db, "posts", postId);
+        const hasLiked = likes && likes.includes(currentUser.uid);
+        if (hasLiked) {
+            await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
+        } else {
+            await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
+        }
+    };
+
     window.handleDelete = async (postId) => {
         if (confirm("この投稿を削除しますか？")) {
             await deleteDoc(doc(db, "posts", postId));
@@ -134,60 +142,8 @@
             await addDoc(collection(db, "posts"), {
                 name: currentUser.displayName,
                 text: msg,
-                parentId: replyParentId, // 親投稿のIDを保存（YouTube形式）
+                parentId: replyParentId,
+                likes: [],
                 uid: currentUser.uid,
                 timestamp: serverTimestamp()
             });
-            document.getElementById('message').value = "";
-            cancelReply();
-        } catch (e) { console.error(e); }
-    };
-
-    const q = query(collection(db, "posts"), orderBy("timestamp", "asc")); // 古い順に取得して並び替え
-    onSnapshot(q, (snapshot) => {
-        const postList = document.getElementById('post-list');
-        postList.innerHTML = "";
-        const allPosts = [];
-        snapshot.forEach(d => allPosts.push({id: d.id, ...d.data()}));
-
-        // 1. 親コメントだけを先に表示
-        const parents = allPosts.filter(p => !p.parentId);
-        parents.reverse().forEach(parent => {
-            const time = parent.timestamp ? parent.timestamp.toDate().toLocaleString('ja-JP') : "...";
-            const isMyPost = currentUser && currentUser.uid === parent.uid;
-            
-            const parentDiv = document.createElement('div');
-            parentDiv.className = 'post';
-            parentDiv.innerHTML = `
-                <div class="post-header">
-                    <strong>${parent.name}</strong> <span>${time}</span>
-                </div>
-                <div class="post-content">${parent.text}</div>
-                <div class="action-btns">
-                    <button class="reply-btn" onclick="setReply('${parent.id}', '${parent.name}')">返信する</button>
-                    ${isMyPost ? `<button class="delete-btn" onclick="handleDelete('${parent.id}')">削除</button>` : ""}
-                </div>
-            `;
-            postList.appendChild(parentDiv);
-
-            // 2. その親に紐づく返信を表示（YouTube風インデント）
-            const replies = allPosts.filter(r => r.parentId === parent.id);
-            replies.forEach(reply => {
-                const rTime = reply.timestamp ? reply.timestamp.toDate().toLocaleString('ja-JP') : "...";
-                const isMyReply = currentUser && currentUser.uid === reply.uid;
-                const replyDiv = document.createElement('div');
-                replyDiv.className = 'post reply-post';
-                replyDiv.innerHTML = `
-                    <div class="post-header">
-                        <strong>${reply.name}</strong> <span>${rTime}</span>
-                    </div>
-                    <div class="post-content">${reply.text}</div>
-                    ${isMyReply ? `<button class="delete-btn" onclick="handleDelete('${reply.id}')">削除</button>` : ""}
-                `;
-                postList.appendChild(replyDiv);
-            });
-        });
-    });
-</script>
-</body>
-</html>
