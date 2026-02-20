@@ -1,65 +1,188 @@
-<link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北上尾歯科 掲示板</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet">
 
-<style>
-    body { 
-        font-family: 'Kiwi Maru', serif; /* 手書き風フォントに変更 */
-        background-color: #fffaf0; /* ノートのような少し温かみのある白 */
-        margin: 0; padding: 20px; 
-    }
-    
-    .container { 
-        max-width: 600px; margin: auto; 
-        background: white; padding: 25px; 
-        border-radius: 15px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: 1px solid #e0d8c0; /* 少し茶色っぽい枠線 */
-    }
+    <style>
+        body { 
+            font-family: 'Kiwi Maru', serif; 
+            background-color: #fffaf0; 
+            margin: 0; padding: 20px; 
+        }
+        
+        .container { 
+            max-width: 600px; margin: auto; 
+            background: white; padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #e0d8c0; 
+        }
 
-    /* タイトル：ノートの「北上尾歯科 掲示板」に合わせる */
-    h1 { 
-        color: #5d4037; 
-        text-align: left; /* ノートに合わせて左寄せ */
-        border-bottom: 2px solid #5d4037;
-        padding-bottom: 10px;
-        font-size: 1.5rem;
-    }
+        h1 { 
+            color: #5d4037; 
+            text-align: left; 
+            border-bottom: 2px solid #5d4037;
+            padding-bottom: 10px;
+            font-size: 1.5rem;
+        }
 
-    #auth-section { text-align: right; font-size: 0.9rem; margin-bottom: 20px; }
+        #auth-section { text-align: right; font-size: 0.9rem; margin-bottom: 20px; }
+        .hidden { display: none; }
 
-    /* 入力エリアのプレースホルダーを「今何してる？」にする */
-    textarea { 
-        width: 100%; height: 100px; 
-        border: 2px solid #ddd; border-radius: 10px;
-        padding: 10px; font-family: inherit; font-size: 1rem;
-    }
+        textarea { 
+            width: 100%; height: 100px; 
+            border: 2px solid #ddd; border-radius: 10px;
+            padding: 10px; font-family: inherit; font-size: 1rem;
+            resize: none;
+        }
 
-    /* ボタンの文字を「世界に投稿する」から「🚀 掲示板に書く」などに変更 */
-    .send-btn { 
-        background: #8d6e63; color: white; 
-        padding: 12px; border: none; border-radius: 25px;
-        width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px;
-    }
+        .send-btn { 
+            background: #8d6e63; color: white; 
+            padding: 12px; border: none; border-radius: 25px;
+            width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px;
+        }
 
-    /* 投稿リストのタイトル「タイムライン」 */
-    .timeline-title {
-        font-weight: bold; color: #8d6e63;
-        margin-top: 30px; border-left: 5px solid #8d6e63;
-        padding-left: 10px;
-    }
+        .login-btn { background: #4285f4; color: white; padding: 10px 20px; border-radius: 8px; border:none; cursor:pointer; }
+        .logout-btn { background: #eee; color: #666; padding: 4px 8px; border-radius: 4px; border:none; cursor:pointer; margin-left: 10px; }
 
-    .post { 
-        border-bottom: 1px dashed #ccc; /* 切り取り線のような点線 */
-        padding: 15px 0;
-    }
-</style>
+        .timeline-title {
+            font-weight: bold; color: #8d6e63;
+            margin-top: 30px; border-left: 5px solid #8d6e63;
+            padding-left: 10px;
+        }
 
+        .post { 
+            border-bottom: 1px dashed #ccc; 
+            padding: 15px 0;
+        }
+        .post-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; margin-bottom: 5px; }
+        .delete-btn { color: #ccc; background: none; border: none; cursor: pointer; }
+        .delete-btn:hover { color: #fa3e3e; }
+    </style>
+</head>
 <body>
+
 <div class="container">
-    <h1>北上尾歯科 掲示板</h1> <div id="auth-section">
+    <h1>北上尾歯科 掲示板</h1> 
+
+    <div id="auth-section">
+        <div id="login-ui">
+            <p style="text-align:center;">※投稿にはログインが必要です</p> 
+            <button class="login-btn" onclick="handleLogin()">Googleでログイン</button>
         </div>
+        <div id="user-ui" class="hidden">
+            <span id="display-name"></span> さん 
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+    </div>
 
     <div id="post-area" class="hidden">
-        <textarea id="message" placeholder="今何してる？"></textarea> <button class="send-btn" onclick="handleAddPost()">🚀 掲示板に書く</button> </div>
+        <textarea id="message" placeholder="今何してる？"></textarea> 
+        <button class="send-btn" onclick="handleAddPost()">🚀 掲示板に書く</button>
+    </div>
 
-    <div class="timeline-title">タイムライン</div> <div id="post-list"></div>
+    <div class="timeline-title">タイムライン</div> 
+    <div id="post-list"></div>
 </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // あなたの新しいプロジェクトのConfig
+    const firebaseConfig = {
+        apiKey: "AIzaSyBFTFZCXzEpqIpsLFtk3VA8u69MKzWYf14",
+        authDomain: "my-bbs-final.firebaseapp.com",
+        projectId: "my-bbs-final",
+        storageBucket: "my-bbs-final.firebasestorage.app",
+        messagingSenderId: "492553288090",
+        appId: "1:492553288090:web:30990a97a235a655946223"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    let currentUser = null;
+
+    // ログイン状態の監視
+    onAuthStateChanged(auth, (user) => {
+        const loginUI = document.getElementById('login-ui');
+        const userUI = document.getElementById('user-ui');
+        const postArea = document.getElementById('post-area');
+        
+        if (user) {
+            currentUser = user;
+            loginUI.classList.add('hidden');
+            userUI.classList.remove('hidden');
+            postArea.classList.remove('hidden');
+            document.getElementById('display-name').innerText = user.displayName;
+        } else {
+            currentUser = null;
+            loginUI.classList.remove('hidden');
+            userUI.classList.add('hidden');
+            postArea.classList.add('hidden');
+        }
+    });
+
+    // ログイン・ログアウト処理
+    window.handleLogin = () => signInWithPopup(auth, provider);
+    window.handleLogout = () => signOut(auth);
+
+    // 投稿処理
+    window.handleAddPost = async () => {
+        const msg = document.getElementById('message').value;
+        if (!msg) return;
+        try {
+            await addDoc(collection(db, "posts"), {
+                name: currentUser.displayName,
+                text: msg,
+                uid: currentUser.uid,
+                timestamp: serverTimestamp()
+            });
+            document.getElementById('message').value = "";
+        } catch (e) { console.error(e); }
+    };
+
+    // 削除処理
+    window.handleDeletePost = async (postId, postUid) => {
+        if (currentUser && currentUser.uid === postUid) {
+            if(confirm("この投稿を削除しますか？")) {
+                await deleteDoc(doc(db, "posts", postId));
+            }
+        }
+    };
+
+    // タイムライン表示
+    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+    onSnapshot(q, (snapshot) => {
+        const postList = document.getElementById('post-list');
+        postList.innerHTML = "";
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const time = data.timestamp ? data.timestamp.toDate().toLocaleString('ja-JP') : "送信中...";
+            const isMyPost = currentUser && currentUser.uid === data.uid;
+            
+            const postDiv = document.createElement('div');
+            postDiv.className = 'post';
+            postDiv.innerHTML = `
+                <div class="post-header">
+                    <strong>${data.name} さん</strong>
+                    <span>${time}</span>
+                </div>
+                <div style="white-space: pre-wrap;">${data.text}</div>
+                <div style="text-align:right;">
+                    ${isMyPost ? `<button class="delete-btn" onclick="handleDeletePost('${doc.id}', '${data.uid}')">🗑 削除</button>` : ""}
+                </div>
+            `;
+            postList.appendChild(postDiv);
+        });
+    });
+</script>
+</body>
+</html>
