@@ -7,15 +7,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Kiwi Maru', serif; background-color: #fcfaf5; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; display: grid; grid-template-columns: 1fr 250px; gap: 20px; }
+        .container { max-width: 900px; margin: auto; display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
         @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
         
         .main-content { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e0d8c0; }
         .side-content { background: #efebe9; padding: 15px; border-radius: 15px; height: fit-content; border: 1px solid #d7ccc8; }
         
-        h1 { color: #5d4037; font-size: 1.4rem; margin-top: 0; border-bottom: 2px solid #d7ccc8; padding-bottom: 8px; }
-        h2 { font-size: 0.9rem; color: #795548; margin-top: 0; display: flex; align-items: center; gap: 5px; }
+        /* メンションのスタイル */
+        .mention { background: #fff3e0; color: #ef6c00; font-weight: bold; padding: 2px 4px; border-radius: 4px; }
+        .is-for-me { border: 2px solid #ff9800 !important; background-color: #fffde7 !important; }
 
+        /* 通知トースト */
+        #notification-toast { position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; display: none; }
+
+        h1 { color: #5d4037; font-size: 1.4rem; margin-top: 0; border-bottom: 2px solid #d7ccc8; padding-bottom: 8px; }
         .summary-panel { display: flex; gap: 8px; margin-bottom: 15px; }
         .summary-item { flex: 1; background: #fff; padding: 8px; border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 0.8rem; }
         .summary-item.active { border-color: #8d6e63; }
@@ -26,61 +31,54 @@
         .cat-info { background: #f3e5f5; color: #7b1fa2; }   
         .cat-problem { background: #ffebee; color: #c62828; } 
 
-        .post { border-bottom: 1px solid #efebe9; padding: 12px 0; }
+        .post { border-bottom: 1px solid #efebe9; padding: 12px 0; border-left: 4px solid transparent; padding-left: 10px; }
         .reply-post { margin-left: 25px; border-left: 2px solid #d7ccc8; padding-left: 10px; font-size: 0.9rem; background: #fffaf0; }
         
-        /* 解決済みサイドバー用 */
         .resolved-mini-post { background: white; padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 0.75rem; border: 1px solid #d7ccc8; }
-        .resolved-mini-title { font-weight: bold; color: #5d4037; margin-bottom: 3px; }
-        .resolved-mini-meta { color: #2e7d32; font-size: 0.65rem; }
-
-        .input-group { margin-bottom: 15px; }
-        select, textarea { width: 100%; border: 2px solid #d7ccc8; border-radius: 8px; padding: 8px; font-family: inherit; box-sizing: border-box; margin-bottom: 8px; }
-        .send-btn { background: #8d6e63; color: white; padding: 10px; border: none; border-radius: 20px; width: 100%; cursor: pointer; font-weight: bold; }
-        
         .action-btns { display: flex; gap: 12px; margin-top: 8px; align-items: center; }
         .btn-text { background: none; border: none; font-size: 0.7rem; cursor: pointer; color: #8d6e63; text-decoration: underline; padding: 0; }
-        .like-btn { text-decoration: none; font-size: 0.8rem; }
-        .like-btn.active { color: #ff4757; font-weight: bold; }
         
         .hidden { display: none !important; }
         #auth-section { text-align: right; margin-bottom: 10px; font-size: 0.75rem; }
+        textarea { width: 100%; height: 80px; border: 2px solid #d7ccc8; border-radius: 8px; padding: 10px; font-family: inherit; margin-bottom: 10px; resize: none; box-sizing: border-box; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="main-content">
-        <h1>北上尾歯科 掲示板</h1>
-        <div id="auth-section">
-            <div id="login-ui"><button id="login-btn">Googleログイン</button></div>
-            <div id="user-ui" class="hidden"><span id="display-name"></span> さん <button id="logout-btn" class="btn-text">ログアウト</button></div>
-        </div>
+    <div id="notification-toast">🔔 あなた宛てのメンションがあります！</div>
 
-        <div class="summary-panel">
-            <div class="summary-item active" id="filter-all"><span class="summary-count" id="count-all">0</span>すべて</div>
-            <div class="summary-item" id="filter-report"><span class="summary-count" id="count-report">0</span>報告</div>
-            <div class="summary-item" id="filter-info"><span class="summary-count" id="count-info">0</span>連絡</div>
-            <div class="summary-item" id="filter-problem"><span class="summary-count" id="count-problem" style="color:red;">0</span>問題</div>
-        </div>
-
-        <div id="post-area" class="hidden">
-            <div id="reply-info" class="hidden" style="font-size:0.8rem; background:#fff9c4; padding:5px; margin-bottom:5px;">
-                @<span id="reply-target-name"></span> さんへ返信中 <button id="cancel-reply-btn" class="btn-text" style="color:red">取消</button>
+    <div class="container">
+        <div class="main-content">
+            <h1>北上尾歯科 掲示板</h1>
+            <div id="auth-section">
+                <div id="login-ui"><button id="login-btn">Googleログイン</button></div>
+                <div id="user-ui" class="hidden"><span id="display-name"></span> さん <button id="logout-btn" class="btn-text">ログアウト</button></div>
             </div>
-            <div class="input-group">
-                <select id="category-select"><option value="報告">📋 報告</option><option value="連絡">✉️ 連絡</option><option value="問題">⚠️ 問題</option></select>
-                <textarea id="message" placeholder="内容を入力..."></textarea>
-                <button id="send-btn" class="send-btn">🚀 投稿</button>
-            </div>
-        </div>
-        <div id="post-list"></div>
-    </div>
 
-    <div class="side-content">
-        <h2>✅ 解決済み一覧</h2>
-        <div id="resolved-list"></div>
+            <div class="summary-panel">
+                <div class="summary-item active" id="filter-all"><span class="summary-count" id="count-all">0</span>すべて</div>
+                <div class="summary-item" id="filter-report"><span class="summary-count" id="count-report">0</span>報告</div>
+                <div class="summary-item" id="filter-info"><span class="summary-count" id="count-info">0</span>連絡</div>
+                <div class="summary-item" id="filter-problem"><span class="summary-count" id="count-problem" style="color:red;">0</span>問題</div>
+            </div>
+
+            <div id="post-area" class="hidden">
+                <div id="reply-info" class="hidden" style="font-size:0.8rem; background:#fff9c4; padding:5px; margin-bottom:5px;">
+                    @<span id="reply-target-name"></span> さんへ返信中 <button id="cancel-reply-btn" class="btn-text" style="color:red">取消</button>
+                </div>
+                <div class="input-group">
+                    <select id="category-select" style="width:100%; margin-bottom:5px; padding:5px;"><option value="報告">📋 報告</option><option value="連絡">✉️ 連絡</option><option value="問題">⚠️ 問題</option></select>
+                    <textarea id="message" placeholder="内容を入力（＠名前 でメンション）"></textarea>
+                    <button id="send-btn" style="background:#8d6e63; color:white; width:100%; padding:10px; border:none; border-radius:20px; font-weight:bold; cursor:pointer;">🚀 投稿</button>
+                </div>
+            </div>
+            <div id="post-list"></div>
+        </div>
+
+        <div class="side-content">
+            <h2>✅ 解決済み一覧</h2>
+            <div id="resolved-list"></div>
+        </div>
     </div>
-</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -102,7 +100,23 @@
     const provider = new GoogleAuthProvider();
 
     let currentUser = null, replyParentId = null, currentFilter = 'すべて', cachedPosts = [];
+    let isFirstLoad = true;
 
+    // --- ユーティリティ ---
+    function formatText(text) {
+        // ＠名前 をメンション化
+        const mentionRegex = /(@|＠)([^\s　]+)/g;
+        let formatted = text.replace(mentionRegex, '<span class="mention">@$2</span>');
+        return formatted;
+    }
+
+    function showToast() {
+        const toast = document.getElementById('notification-toast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 5000);
+    }
+
+    // --- イベント ---
     document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
     document.getElementById('logout-btn').onclick = () => signOut(auth);
     document.getElementById('cancel-reply-btn').onclick = () => { replyParentId = null; document.getElementById('reply-info').classList.add('hidden'); };
@@ -120,16 +134,6 @@
         document.getElementById('reply-info').classList.add('hidden');
     };
 
-    const filterMap = { 'filter-all': 'すべて', 'filter-report': '報告', 'filter-info': '連絡', 'filter-problem': '問題' };
-    Object.keys(filterMap).forEach(id => {
-        document.getElementById(id).onclick = () => {
-            currentFilter = filterMap[id];
-            document.querySelectorAll('.summary-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            renderTimeline();
-        };
-    });
-
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         document.getElementById('user-ui').classList.toggle('hidden', !user);
@@ -139,8 +143,19 @@
     });
 
     onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snapshot) => {
+        let hasNewMention = false;
+        const newPosts = [];
+        snapshot.docChanges().forEach(change => {
+            if (change.type === "added" && !isFirstLoad) {
+                const post = change.doc.data();
+                if (currentUser && post.text.includes(`@${currentUser.displayName}`)) hasNewMention = true;
+            }
+        });
+
         cachedPosts = [];
         snapshot.forEach(d => cachedPosts.push({id: d.id, ...d.data()}));
+        if (hasNewMention) showToast();
+        isFirstLoad = false;
         updateSummary();
         renderTimeline();
     });
@@ -148,10 +163,10 @@
     function updateSummary() {
         const counts = { 'すべて': 0, '報告': 0, '連絡': 0, '問題': 0 };
         cachedPosts.forEach(p => { if (!p.parentId && !p.resolved) { counts['すべて']++; counts[p.category]++; } });
-        document.getElementById('count-all').innerText = counts['すべて'];
-        document.getElementById('count-report').innerText = counts['報告'];
-        document.getElementById('count-info').innerText = counts['連絡'];
-        document.getElementById('count-problem').innerText = counts['問題'];
+        ['all', 'report', 'info', 'problem'].forEach(k => {
+            const filterMap = { 'all': 'すべて', 'report': '報告', 'info': '連絡', 'problem': '問題' };
+            document.getElementById(`count-${k}`).innerText = counts[filterMap[k]];
+        });
     }
 
     function renderTimeline() {
@@ -160,64 +175,46 @@
         postList.innerHTML = ""; resolvedList.innerHTML = "";
 
         cachedPosts.forEach(post => {
-            if (post.parentId) return; // 返信は後で処理
+            if (post.parentId) return;
 
             const isResolved = post.resolved === true;
-            const isMyPost = currentUser && currentUser.uid === post.uid;
-            const likesCount = post.likes ? post.likes.length : 0;
-            const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
+            const isForMe = currentUser && post.text.includes(`@${currentUser.displayName}`);
 
             if (isResolved) {
-                // 解決済みエリア（右側）の表示
                 const mini = document.createElement('div');
                 mini.className = 'resolved-mini-post';
-                mini.innerHTML = `
-                    <div class="resolved-mini-title">【${post.category}】${post.text.substring(0,20)}...</div>
-                    <div class="resolved-mini-meta">👤 ${post.resolvedBy || '不明'} が解決</div>
-                    <button class="btn-text unresolve-btn">未解決に戻す</button>
-                `;
-                mini.querySelector('.unresolve-btn').onclick = () => updateDoc(doc(db, "posts", post.id), { resolved: false, resolvedBy: null });
+                mini.innerHTML = `<div><strong>${post.name}</strong>: ${post.text.substring(0,15)}...</div><button class="btn-text unresolve-btn">戻す</button>`;
+                mini.querySelector('.unresolve-btn').onclick = () => updateDoc(doc(db, "posts", post.id), { resolved: false });
                 resolvedList.appendChild(mini);
             } else {
-                // メインタイムラインの表示
                 if (currentFilter !== 'すべて' && post.category !== currentFilter) return;
-
                 const div = document.createElement('div');
-                div.className = 'post';
-                let catClass = post.category === '報告' ? 'cat-report' : post.category === '連絡' ? 'cat-info' : 'cat-problem';
+                div.className = `post ${isForMe ? 'is-for-me' : ''}`;
+                const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
+                
                 div.innerHTML = `
-                    <div style="font-size:0.75rem;"><span class="cat-tag ${catClass}">${post.category}</span><strong>${post.name}</strong></div>
-                    <div style="margin:5px 0; white-space:pre-wrap;">${post.text}</div>
+                    <div style="font-size:0.75rem;"><span class="cat-tag cat-${post.category === '報告'?'report':post.category === '連絡'?'info':'problem'}">${post.category}</span><strong>${post.name}</strong></div>
+                    <div style="margin:5px 0; white-space:pre-wrap;">${formatText(post.text)}</div>
                     <div class="action-btns">
-                        <button class="btn-text like-btn ${hasLiked ? 'active' : ''}">${hasLiked ? '❤️' : '🤍'} ${likesCount}</button>
+                        <button class="btn-text like-btn ${hasLiked?'active':''}">❤️ ${post.likes?post.likes.length:0}</button>
                         <button class="btn-text reply-btn">返信</button>
-                        ${(post.category === '問題') ? `<button class="btn-text resolve-btn" style="color:green">解決済みにする</button>` : ""}
-                        ${isMyPost ? `<button class="btn-text delete-btn" style="color:red">削除</button>` : ""}
+                        ${post.category === '問題' ? `<button class="btn-text resolve-btn" style="color:green">解決</button>` : ""}
+                        ${(currentUser && currentUser.uid === post.uid) ? `<button class="btn-text delete-btn" style="color:red">削除</button>` : ""}
                     </div>
                 `;
                 
                 div.querySelector('.like-btn').onclick = () => updateDoc(doc(db, "posts", post.id), { likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
                 div.querySelector('.reply-btn').onclick = () => { replyParentId = post.id; document.getElementById('reply-info').classList.remove('hidden'); document.getElementById('reply-target-name').innerText = post.name; document.getElementById('message').focus(); };
                 if(div.querySelector('.resolve-btn')) div.querySelector('.resolve-btn').onclick = () => updateDoc(doc(db, "posts", post.id), { resolved: true, resolvedBy: currentUser.displayName });
-                if(div.querySelector('.delete-btn')) div.querySelector('.delete-btn').onclick = () => confirm("消去しますか？") && deleteDoc(doc(db, "posts", post.id));
-                
+                if(div.querySelector('.delete-btn')) div.querySelector('.delete-btn').onclick = () => confirm("削除？") && deleteDoc(doc(db, "posts", post.id));
                 postList.appendChild(div);
 
-                // 返信の表示
+                // 返信
                 cachedPosts.filter(r => r.parentId === post.id).reverse().forEach(reply => {
                     const rDiv = document.createElement('div');
-                    rDiv.className = 'post reply-post';
-                    const rHasLiked = currentUser && reply.likes && reply.likes.includes(currentUser.uid);
-                    rDiv.innerHTML = `
-                        <div style="font-size:0.7rem;"><strong>${reply.name}</strong></div>
-                        <div>${reply.text}</div>
-                        <div class="action-btns">
-                            <button class="btn-text like-btn ${rHasLiked ? 'active' : ''}">${rHasLiked ? '❤️' : '🤍'} ${reply.likes.length}</button>
-                            ${(currentUser && currentUser.uid === reply.uid) ? `<button class="btn-text delete-btn" style="color:red">削除</button>` : ""}
-                        </div>
-                    `;
-                    rDiv.querySelector('.like-btn').onclick = () => updateDoc(doc(db, "posts", reply.id), { likes: rHasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
-                    if(rDiv.querySelector('.delete-btn')) rDiv.querySelector('.delete-btn').onclick = () => deleteDoc(doc(db, "posts", reply.id));
+                    const isRForMe = currentUser && reply.text.includes(`@${currentUser.displayName}`);
+                    rDiv.className = `post reply-post ${isRForMe ? 'is-for-me' : ''}`;
+                    rDiv.innerHTML = `<div><strong>${reply.name}</strong></div><div>${formatText(reply.text)}</div>`;
                     postList.appendChild(rDiv);
                 });
             }
