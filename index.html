@@ -22,10 +22,22 @@
         .staff-picker { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 5px; border-top: 1px dashed #d7ccc8; padding-top: 10px; }
         .staff-btn { background: #fff; border: 1px solid #8d6e63; border-radius: 15px; padding: 3px 10px; font-size: 0.75rem; cursor: pointer; color: #8d6e63; }
 
-        .post { border-bottom: 1px solid #efebe9; padding: 15px 5px; border-left: 5px solid transparent; }
+        .post { border-bottom: 1px solid #efebe9; padding: 15px 5px; border-left: 5px solid transparent; position: relative; }
         .is-for-me { background-color: #fffde7 !important; border-left-color: #ff9800 !important; }
         .mention { background: #fff3e0; color: #ef6c00; font-weight: bold; padding: 2px 4px; border-radius: 4px; }
         .post-time { color: #bbb; font-size: 0.7rem; margin-left: 8px; font-weight: normal; }
+        
+        .reply-post { 
+            margin-left: 30px; 
+            margin-top: 5px;
+            margin-bottom: 10px;
+            background-color: #f8f5f0; 
+            border-left: 4px solid #d7ccc8 !important; 
+            padding: 10px 15px; 
+            border-radius: 0 10px 10px 10px; 
+            font-size: 0.9rem;
+            border-bottom: none;
+        }
         
         .cat-tag { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; }
         .cat-報告 { background: #e3f2fd; color: #1976d2; } 
@@ -98,7 +110,6 @@
 
     let currentUser = null, replyParentId = null, currentFilter = 'すべて', cachedPosts = [], firstLoad = true;
 
-    // --- 日時フォーマット関数 ---
     function formatTime(ts) {
         if (!ts) return "...";
         const date = ts.toDate();
@@ -131,7 +142,7 @@
         snapshot.docChanges().forEach(change => {
             if (change.type === "added" && !firstLoad) {
                 const p = change.doc.data();
-                if (currentUser && p.text.includes(`@${currentUser.displayName}`)) hasNewMention = true;
+                if (currentUser && p.text && p.text.includes(`@${currentUser.displayName}`)) hasNewMention = true;
             }
         });
         cachedPosts = [];
@@ -157,7 +168,6 @@
         document.getElementById('c-report').innerText = counts['報告'];
         document.getElementById('c-info').innerText = counts['連絡'];
         document.getElementById('c-problem').innerText = counts['問題'];
-
         staffArea.innerHTML = "";
         staffNames.forEach(name => {
             const btn = document.createElement('button');
@@ -180,6 +190,20 @@
         document.getElementById('reply-info').classList.add('hidden');
     };
 
+    document.getElementById('cancel-reply-btn').onclick = () => {
+        replyParentId = null;
+        document.getElementById('reply-info').classList.add('hidden');
+    };
+
+    function startReply(targetId, targetName) {
+        replyParentId = targetId;
+        document.getElementById('reply-info').classList.remove('hidden');
+        document.getElementById('reply-target-name').innerText = targetName;
+        document.getElementById('message').value = `@${targetName} `; // 相手へのメンションを自動挿入
+        document.getElementById('message').focus();
+        window.scrollTo(0,0);
+    }
+
     function renderTimeline() {
         const postList = document.getElementById('post-list');
         const resolvedList = document.getElementById('resolved-list');
@@ -200,7 +224,7 @@
             } else {
                 if (currentFilter !== 'すべて' && post.category !== currentFilter) return;
                 const div = document.createElement('div');
-                const isForMe = currentUser && post.text.includes(`@${currentUser.displayName}`);
+                const isForMe = currentUser && post.text && post.text.includes(`@${currentUser.displayName}`);
                 div.className = `post ${isForMe ? 'is-for-me' : ''}`;
                 const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
                 
@@ -216,15 +240,29 @@
                 `;
                 postList.appendChild(div);
                 document.getElementById(`like-${post.id}`).onclick = () => updateDoc(doc(db, "posts", post.id), { likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
-                document.getElementById(`rep-${post.id}`).onclick = () => { replyParentId = post.id; document.getElementById('reply-info').classList.remove('hidden'); document.getElementById('reply-target-name').innerText = post.name; document.getElementById('message').focus(); };
+                document.getElementById(`rep-${post.id}`).onclick = () => startReply(post.id, post.name);
                 if(document.getElementById(`res-${post.id}`)) document.getElementById(`res-${post.id}`).onclick = () => updateDoc(doc(db, "posts", post.id), { resolved: true, resolvedBy: currentUser.displayName });
                 if(document.getElementById(`del-${post.id}`)) document.getElementById(`del-${post.id}`).onclick = () => confirm("削除？") && deleteDoc(doc(db, "posts", post.id));
 
                 cachedPosts.filter(r => r.parentId === post.id).reverse().forEach(reply => {
                     const rDiv = document.createElement('div');
-                    rDiv.className = `post reply-post ${currentUser && reply.text.includes(`@${currentUser.displayName}`) ? 'is-for-me' : ''}`;
-                    rDiv.innerHTML = `<div><strong>${reply.name}</strong><span class="post-time">${formatTime(reply.timestamp)}</span></div><div>${reply.text.replace(/(@|＠)([^\s　]+)/g, '<span class="mention">@$2</span>')}</div>`;
+                    const isRForMe = currentUser && reply.text && reply.text.includes(`@${currentUser.displayName}`);
+                    rDiv.className = `post reply-post ${isRForMe ? 'is-for-me' : ''}`;
+                    rDiv.innerHTML = `
+                        <div style="font-size:0.7rem; display:flex; justify-content:space-between;">
+                            <strong>${reply.name}</strong>
+                            <span class="post-time">${formatTime(reply.timestamp)}</span>
+                        </div>
+                        <div style="margin-top:4px; white-space:pre-wrap;">${reply.text.replace(/(@|＠)([^\s　]+)/g, '<span class="mention">@$2</span>')}</div>
+                        <div class="action-btns" style="justify-content:flex-end;">
+                             <button class="btn-text" id="re-rep-${reply.id}">返信</button>
+                             ${(currentUser && currentUser.uid === reply.uid) ? `<button class="btn-text" id="del-${reply.id}" style="color:red;">削除</button>` : ""}
+                        </div>
+                    `;
                     postList.appendChild(rDiv);
+                    // 返信に対する返信ボタン：親投稿のIDを引き継いでスレッドを維持
+                    document.getElementById(`re-rep-${reply.id}`).onclick = () => startReply(post.id, reply.name);
+                    if(document.getElementById(`del-${reply.id}`)) document.getElementById(`del-${reply.id}`).onclick = () => confirm("返信を削除？") && deleteDoc(doc(db, "posts", reply.id));
                 });
             }
         });
