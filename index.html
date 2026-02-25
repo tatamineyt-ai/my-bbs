@@ -10,26 +10,22 @@
         .container { max-width: 950px; margin: auto; display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
         @media (max-width: 850px) { .container { grid-template-columns: 1fr; } }
         
-        /* メイン・サイド */
         .main-content { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e0d8c0; }
         .side-content { background: #efebe9; padding: 15px; border-radius: 15px; height: fit-content; border: 1px solid #d7ccc8; }
 
-        /* 項目分けボタン（サマリー） */
         .summary-panel { display: flex; gap: 8px; margin-bottom: 15px; }
-        .summary-item { flex: 1; background: #fff; padding: 10px 5px; border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid #e0d8c0; transition: 0.2s; }
-        .summary-item.active { border-color: #8d6e63; background: #fafafa; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.1); }
-        .summary-count { font-size: 1.2rem; display: block; margin-bottom: 2px; }
+        .summary-item { flex: 1; background: #fff; padding: 10px 5px; border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid #e0d8c0; }
+        .summary-item.active { border-color: #8d6e63; background: #fafafa; font-weight: bold; }
+        .summary-count { font-size: 1.2rem; display: block; }
         .summary-label { font-size: 0.7rem; color: #795548; }
 
-        /* メンション選択タブ */
         .staff-picker { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 5px; border-top: 1px dashed #d7ccc8; padding-top: 10px; }
         .staff-btn { background: #fff; border: 1px solid #8d6e63; border-radius: 15px; padding: 3px 10px; font-size: 0.75rem; cursor: pointer; color: #8d6e63; }
-        .staff-btn:hover { background: #8d6e63; color: #fff; }
 
-        /* 投稿スタイル */
         .post { border-bottom: 1px solid #efebe9; padding: 15px 5px; border-left: 5px solid transparent; }
         .is-for-me { background-color: #fffde7 !important; border-left-color: #ff9800 !important; }
         .mention { background: #fff3e0; color: #ef6c00; font-weight: bold; padding: 2px 4px; border-radius: 4px; }
+        .post-time { color: #bbb; font-size: 0.7rem; margin-left: 8px; font-weight: normal; }
         
         .cat-tag { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; }
         .cat-報告 { background: #e3f2fd; color: #1976d2; } 
@@ -39,18 +35,17 @@
         .action-btns { display: flex; gap: 15px; margin-top: 10px; }
         .btn-text { background: none; border: none; font-size: 0.75rem; cursor: pointer; color: #8d6e63; text-decoration: underline; padding: 0; }
         
-        #notification-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 12px 20px; border-radius: 30px; z-index: 2000; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        #notification-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 12px 20px; border-radius: 30px; z-index: 2000; display: none; }
         .hidden { display: none !important; }
-        textarea { width: 100%; border: 2px solid #d7ccc8; border-radius: 8px; padding: 10px; font-family: inherit; margin-bottom: 5px; box-sizing: border-box; resize: none; }
+        textarea { width: 100%; border: 2px solid #d7ccc8; border-radius: 8px; padding: 10px; font-family: inherit; box-sizing: border-box; resize: none; }
     </style>
 </head>
 <body>
-    <div id="notification-toast">🔔 あなた宛てのメンションが届きました！</div>
+    <div id="notification-toast">🔔 メンションが届きました！</div>
 
     <div class="container">
         <div class="main-content">
             <h1 style="color:#5d4037; font-size:1.3rem; margin:0 0 10px 0;">北上尾歯科 掲示板</h1>
-            
             <div id="auth-section" style="text-align:right; font-size:0.8rem; margin-bottom:15px;">
                 <div id="login-ui"><button id="login-btn" style="padding:5px 15px; border-radius:15px; border:1px solid #8d6e63; background:white; cursor:pointer;">Googleログイン</button></div>
                 <div id="user-ui" class="hidden"><span id="display-name"></span> さん <button id="logout-btn" class="btn-text">ログアウト</button></div>
@@ -67,22 +62,15 @@
                 <div id="reply-info" class="hidden" style="font-size:0.8rem; background:#fff9c4; padding:8px; border-radius:5px; margin-bottom:10px;">
                     @<span id="reply-target-name"></span> さんへ返信中 <button id="cancel-reply-btn" class="btn-text" style="color:red; text-decoration:none; float:right;">✕ キャンセル</button>
                 </div>
-                
                 <select id="category-select" style="width:100%; padding:8px; border-radius:8px; border:2px solid #d7ccc8; margin-bottom:8px;">
                     <option value="報告">📋 報告</option><option value="連絡">✉️ 連絡</option><option value="問題">⚠️ 問題</option>
                 </select>
-                <textarea id="message" rows="3" placeholder="内容を入力（下のボタンから名前を選んでメンション）"></textarea>
-                
-                <div style="font-size:0.75rem; color:#795548; margin-bottom:5px;">📢 誰に送る？：</div>
-                <div class="staff-picker" id="staff-list">
-                    </div>
-
-                <button id="send-btn" style="background:#8d6e63; color:white; width:100%; padding:12px; border:none; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer; margin-top:10px;">🚀 投稿する</button>
+                <textarea id="message" rows="3" placeholder="内容を入力（下の名前を選んでメンション）"></textarea>
+                <div class="staff-picker" id="staff-list"></div>
+                <button id="send-btn" style="background:#8d6e63; color:white; width:100%; padding:12px; border:none; border-radius:25px; font-weight:bold; cursor:pointer; margin-top:5px;">🚀 投稿する</button>
             </div>
-
             <div id="post-list"></div>
         </div>
-
         <div class="side-content">
             <h2 style="font-size:0.9rem; color:#5d4037; margin:0 0 10px 0;">✅ 解決済み一覧</h2>
             <div id="resolved-list"></div>
@@ -108,14 +96,18 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    let currentUser = null, replyParentId = null, currentFilter = 'すべて', cachedPosts = [], activeStaff = new Set();
-    let firstLoad = true;
+    let currentUser = null, replyParentId = null, currentFilter = 'すべて', cachedPosts = [], firstLoad = true;
 
-    // --- ログイン・ログアウト ---
+    // --- 日時フォーマット関数 ---
+    function formatTime(ts) {
+        if (!ts) return "...";
+        const date = ts.toDate();
+        return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+
     document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
     document.getElementById('logout-btn').onclick = () => signOut(auth);
 
-    // --- フィルタボタンの処理（確実に動作するように定義） ---
     const filters = { 'f-all': 'すべて', 'f-report': '報告', 'f-info': '連絡', 'f-problem': '問題' };
     Object.keys(filters).forEach(id => {
         document.getElementById(id).onclick = () => {
@@ -126,46 +118,6 @@
         };
     });
 
-    // --- メンション機能 ---
-    function updateStaffList() {
-        const staffArea = document.getElementById('staff-list');
-        staffArea.innerHTML = "";
-        // 投稿者リストから名前を抽出
-        const names = Array.from(new Set(cachedPosts.map(p => p.name)));
-        names.forEach(name => {
-            if (!name) return;
-            const btn = document.createElement('button');
-            btn.className = 'staff-btn';
-            btn.innerText = name;
-            btn.onclick = () => {
-                const textarea = document.getElementById('message');
-                textarea.value += `@${name} `;
-                textarea.focus();
-            };
-            staffArea.appendChild(btn);
-        });
-    }
-
-    // --- 投稿処理 ---
-    document.getElementById('send-btn').onclick = async () => {
-        const msg = document.getElementById('message').value;
-        const cat = document.getElementById('category-select').value;
-        if (!msg || !currentUser) return;
-        await addDoc(collection(db, "posts"), {
-            name: currentUser.displayName, text: msg, category: cat, parentId: replyParentId,
-            resolved: false, resolvedBy: null, likes: [], uid: currentUser.uid, timestamp: serverTimestamp()
-        });
-        document.getElementById('message').value = "";
-        replyParentId = null;
-        document.getElementById('reply-info').classList.add('hidden');
-    };
-
-    document.getElementById('cancel-reply-btn').onclick = () => {
-        replyParentId = null;
-        document.getElementById('reply-info').classList.add('hidden');
-    };
-
-    // --- 認証状態の監視 ---
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         document.getElementById('user-ui').classList.toggle('hidden', !user);
@@ -174,7 +126,6 @@
         if (user) document.getElementById('display-name').innerText = user.displayName;
     });
 
-    // --- データ監視 ---
     onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snapshot) => {
         let hasNewMention = false;
         snapshot.docChanges().forEach(change => {
@@ -191,18 +142,43 @@
         }
         firstLoad = false;
         updateSummary();
-        updateStaffList(); // スタッフリスト更新
         renderTimeline();
     });
 
     function updateSummary() {
         const counts = { 'すべて': 0, '報告': 0, '連絡': 0, '問題': 0 };
-        cachedPosts.forEach(p => { if (!p.parentId && !p.resolved) { counts['すべて']++; counts[p.category]++; } });
+        const staffArea = document.getElementById('staff-list');
+        const staffNames = new Set();
+        cachedPosts.forEach(p => { 
+            if (!p.parentId && !p.resolved) { counts['すべて']++; counts[p.category]++; }
+            if (p.name) staffNames.add(p.name);
+        });
         document.getElementById('c-all').innerText = counts['すべて'];
         document.getElementById('c-report').innerText = counts['報告'];
         document.getElementById('c-info').innerText = counts['連絡'];
         document.getElementById('c-problem').innerText = counts['問題'];
+
+        staffArea.innerHTML = "";
+        staffNames.forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'staff-btn'; btn.innerText = name;
+            btn.onclick = () => { document.getElementById('message').value += `@${name} `; document.getElementById('message').focus(); };
+            staffArea.appendChild(btn);
+        });
     }
+
+    document.getElementById('send-btn').onclick = async () => {
+        const msg = document.getElementById('message').value;
+        const cat = document.getElementById('category-select').value;
+        if (!msg || !currentUser) return;
+        await addDoc(collection(db, "posts"), {
+            name: currentUser.displayName, text: msg, category: cat, parentId: replyParentId,
+            resolved: false, resolvedBy: null, likes: [], uid: currentUser.uid, timestamp: serverTimestamp()
+        });
+        document.getElementById('message').value = "";
+        replyParentId = null;
+        document.getElementById('reply-info').classList.add('hidden');
+    };
 
     function renderTimeline() {
         const postList = document.getElementById('post-list');
@@ -211,26 +187,25 @@
 
         cachedPosts.forEach(post => {
             if (post.parentId) return;
-
             const isResolved = post.resolved === true;
-            const isForMe = currentUser && post.text.includes(`@${currentUser.displayName}`);
+            const timeStr = formatTime(post.timestamp);
 
             if (isResolved) {
                 const mini = document.createElement('div');
                 mini.style = "background:white; padding:8px; border-radius:8px; margin-bottom:8px; border:1px solid #d7ccc8; font-size:0.75rem;";
-                mini.innerHTML = `<div><strong>${post.name}</strong>: ${post.text.substring(0,20)}...</div>
-                                  <button class="btn-text" style="color:#666;" onclick="this.dataset.id='${post.id}'" id="unres-${post.id}">未解決に戻す</button>`;
+                mini.innerHTML = `<div style="color:#bbb; font-size:0.6rem;">${timeStr}</div><div><strong>${post.name}</strong>: ${post.text.substring(0,15)}...</div>
+                                  <button class="btn-text" id="unres-${post.id}">未解決に戻す</button>`;
                 resolvedList.appendChild(mini);
                 document.getElementById(`unres-${post.id}`).onclick = () => updateDoc(doc(db, "posts", post.id), { resolved: false });
             } else {
                 if (currentFilter !== 'すべて' && post.category !== currentFilter) return;
-
                 const div = document.createElement('div');
+                const isForMe = currentUser && post.text.includes(`@${currentUser.displayName}`);
                 div.className = `post ${isForMe ? 'is-for-me' : ''}`;
                 const hasLiked = currentUser && post.likes && post.likes.includes(currentUser.uid);
                 
                 div.innerHTML = `
-                    <div style="font-size:0.7rem;"><span class="cat-tag cat-${post.category}">${post.category}</span><strong>${post.name}</strong></div>
+                    <div style="font-size:0.7rem;"><span class="cat-tag cat-${post.category}">${post.category}</span><strong>${post.name}</strong><span class="post-time">${timeStr}</span></div>
                     <div style="margin:5px 0; white-space:pre-wrap; line-height:1.4;">${post.text.replace(/(@|＠)([^\s　]+)/g, '<span class="mention">@$2</span>')}</div>
                     <div class="action-btns">
                         <button class="btn-text" id="like-${post.id}">${hasLiked?'❤️':'🤍'} ${post.likes?post.likes.length:0}</button>
@@ -240,18 +215,15 @@
                     </div>
                 `;
                 postList.appendChild(div);
-
                 document.getElementById(`like-${post.id}`).onclick = () => updateDoc(doc(db, "posts", post.id), { likes: hasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
                 document.getElementById(`rep-${post.id}`).onclick = () => { replyParentId = post.id; document.getElementById('reply-info').classList.remove('hidden'); document.getElementById('reply-target-name').innerText = post.name; document.getElementById('message').focus(); };
                 if(document.getElementById(`res-${post.id}`)) document.getElementById(`res-${post.id}`).onclick = () => updateDoc(doc(db, "posts", post.id), { resolved: true, resolvedBy: currentUser.displayName });
-                if(document.getElementById(`del-${post.id}`)) document.getElementById(`del-${post.id}`).onclick = () => confirm("削除しますか？") && deleteDoc(doc(db, "posts", post.id));
+                if(document.getElementById(`del-${post.id}`)) document.getElementById(`del-${post.id}`).onclick = () => confirm("削除？") && deleteDoc(doc(db, "posts", post.id));
 
-                // 返信
                 cachedPosts.filter(r => r.parentId === post.id).reverse().forEach(reply => {
                     const rDiv = document.createElement('div');
-                    const isRForMe = currentUser && reply.text.includes(`@${currentUser.displayName}`);
-                    rDiv.className = `post reply-post ${isRForMe ? 'is-for-me' : ''}`;
-                    rDiv.innerHTML = `<div><strong>${reply.name}</strong></div><div style="white-space:pre-wrap;">${reply.text.replace(/(@|＠)([^\s　]+)/g, '<span class="mention">@$2</span>')}</div>`;
+                    rDiv.className = `post reply-post ${currentUser && reply.text.includes(`@${currentUser.displayName}`) ? 'is-for-me' : ''}`;
+                    rDiv.innerHTML = `<div><strong>${reply.name}</strong><span class="post-time">${formatTime(reply.timestamp)}</span></div><div>${reply.text.replace(/(@|＠)([^\s　]+)/g, '<span class="mention">@$2</span>')}</div>`;
                     postList.appendChild(rDiv);
                 });
             }
